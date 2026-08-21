@@ -1,0 +1,23 @@
+# Node
+node_modules/
+
+# Secrets — never commit
+.env
+.env.local
+google-services.json
+
+# Build artifacts
+build/
+*.apk
+coverage/
+
+# Flutter / Dart
+.dart_tool/
+
+# IDEs
+*.iml
+.idea/
+.vscode/
+
+# Android
+android/.gradle/
