@@ -6,6 +6,7 @@ import "../../features/auth/login_screen.dart";
 import "../../features/auth/register_screen.dart";
 import "../../features/customer/customer_home_screen.dart";
 import "../../features/driver/driver_home_screen.dart";
+import "../../features/rides/history_screen.dart";
 import "../../features/rides/rating_screen.dart";
 import "../../features/tracking/tracking_screen.dart";
 import "../auth/auth_state.dart";
@@ -29,8 +30,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!session.isAuthenticated) return authArea ? null : "/login";
       if (authArea) return "/${session.role}";
       // /tracking/{id} is role-neutral (§4: every role may view a ride) —
-      // don't bounce it back to the caller's dashboard.
-      final onTracking = state.matchedLocation.startsWith("/tracking");
+      // don't bounce it back to the caller's dashboard. Same for /history:
+      // both roles land there from their home screen (Task 5.2).
+      final onTracking =
+          state.matchedLocation.startsWith("/tracking") ||
+              state.matchedLocation.startsWith("/history");
       if (!onTracking && !state.matchedLocation.startsWith("/${session.role}")) {
         return "/${session.role}";
       }
@@ -54,6 +58,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: "/driver", builder: (_, _) => const DriverHomeScreen()),
+      GoRoute(path: "/history", builder: (_, _) => const HistoryScreen()),
       GoRoute(path: "/admin", builder: (_, _) => const AdminScreen()),
     ],
   );

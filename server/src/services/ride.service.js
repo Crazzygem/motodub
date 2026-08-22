@@ -208,6 +208,10 @@ export async function rate(actorId, rideId, rating) {
  * §4 GET /api/rides/mine — role-scoped history, newest first. An admin is
  * never a ride participant (the admin feed arrives with Task 6.1), so their
  * scope is empty here by design.
+ *
+ * Task 5.2: each row carries timestamps plus the opposite-party snapshot —
+ * driver view → customer name/rating · customer view → driver name/rating
+ * and car/plate (which live on `drivers`, keyed by user_id, not on users).
  */
 export async function listMine(userId, role) {
   const column =
@@ -217,12 +221,43 @@ export async function listMine(userId, role) {
         ? "driver_id"
         : null;
   if (!column) return [];
-  return Ride.findAll({
+
+  const rides = await Ride.findAll({
     where: { [column]: userId },
+    include: [
+      { model: User, as: "customer", attributes: ["id", "name", "rating"] },
+      { model: User, as: "driver", attributes: ["id", "name", "rating"] },
+    ],
     order: [
       ["created_at", "DESC"],
       ["id", "DESC"], // tie-break: DATE columns are second-precision
     ],
+  });
+
+  // One vehicle query per distinct driver — never per ride.
+  const vehicles = await Driver.findAll({
+    where: {
+      user_id: [...new Set(rides.map((ride) => ride.driver_id))],
+    },
+    attributes: ["user_id", "car_model", "plate"],
+  });
+  const vehicleByUserId = new Map(vehicles.map((v) => [v.user_id, v]));
+
+  return rides.map((ride) => {
+    const json = ride.toJSON();
+
+    // §10 wire names are snake_case — the auto timestamp attributes aren't.
+    json.created_at = json.created_at ?? json.createdAt;
+    json.updated_at = json.updated_at ?? json.updatedAt;
+    delete json.createdAt;
+    delete json.updatedAt;
+
+    if (json.driver) {
+      const vehicle = vehicleByUserId.get(ride.driver_id);
+      json.driver.car_model = vehicle?.car_model ?? null;
+      json.driver.plate = vehicle?.plate ?? null;
+    }
+    return json;
   });
 }
 

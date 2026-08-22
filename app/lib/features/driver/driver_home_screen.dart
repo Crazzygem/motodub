@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 
 import "../../core/api/api_client.dart";
 import "../../core/api/error_messages.dart";
@@ -39,6 +40,11 @@ class DriverHomeScreen extends ConsumerWidget {
                     Expanded(
                       child: Text("MotoDub Driver",
                           style: Theme.of(context).textTheme.titleLarge),
+                    ),
+                    IconButton(
+                      onPressed: () => context.push("/history"),
+                      icon: const Icon(Icons.history_rounded),
+                      tooltip: "Your rides",
                     ),
                     const LogoutButton(),
                   ],

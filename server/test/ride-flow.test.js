@@ -404,11 +404,13 @@ describe("GET /api/rides/mine", () => {
   let sreyToken;
   let daraToken;
   let vithyToken;
+  let adminToken;
 
   beforeAll(async () => {
     sreyToken = await login("srey@taxi.demo", "Demo@123");
     daraToken = await login("dara@taxi.demo", "Demo@123");
     vithyToken = await login("vithy@taxi.demo", "Demo@123");
+    adminToken = await login("admin@taxi.demo", "Admin@123");
   });
 
   it("requires authentication", async () => {
@@ -431,7 +433,25 @@ describe("GET /api/rides/mine", () => {
     const mine = await User.findOne({ where: { email: "srey@taxi.demo" } });
     for (const ride of res.body.data) {
       expect(ride.customer_id).toBe(mine.id);
+
+      // Task 5.2: history rows carry timestamps + the opposite-party
+      // snapshot — customer view → driver name/rating + car/plate.
+      expect(ride.created_at).toBeTruthy();
+      expect(ride.updated_at).toBeTruthy();
+      expect(ride.driver).toMatchObject({
+        id: ride.driver_id,
+        car_model: expect.any(String),
+        plate: expect.any(String),
+      });
+      expect(typeof ride.driver.name).toBe("string");
+      // DECIMAL serializes as string ("4.5") — parseable either way.
+      expect(Number(ride.driver.rating)).not.toBeNaN();
     }
+
+    // Seeded history: srey rode with dara AND sophea — both snapshots present.
+    const driverNames = res.body.data.map((r) => r.driver.name);
+    expect(driverNames).toContain("Dara");
+    expect(driverNames).toContain("Sophea");
   });
 
   it("lists dara's driver-side rides", async () => {
@@ -442,7 +462,18 @@ describe("GET /api/rides/mine", () => {
     expect(res.body.data.length).toBeGreaterThan(0);
     for (const ride of res.body.data) {
       expect(ride.driver_id).toBe(daraUser.id);
+
+      // Task 5.2: driver view → customer name/rating + timestamps.
+      expect(ride.created_at).toBeTruthy();
+      expect(ride.updated_at).toBeTruthy();
+      expect(ride.customer).toMatchObject({ id: ride.customer_id });
+      expect(typeof ride.customer.name).toBe("string");
+      // DECIMAL serializes as string ("4.5") — parseable either way.
+      expect(Number(ride.customer.rating)).not.toBeNaN();
     }
+
+    // Seeded completed ride: srey was the customer.
+    expect(res.body.data.map((r) => r.customer.name)).toContain("Srey");
   });
 
   it("never leaks another customer's rides", async () => {
@@ -454,5 +485,13 @@ describe("GET /api/rides/mine", () => {
     for (const id of sreyIds) {
       expect(vithyIds).not.toContain(id);
     }
+  });
+
+  it("gives an admin an empty scope (never a ride participant)", async () => {
+    const res = await get(adminToken, "/api/rides/mine");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toEqual([]);
   });
 });
