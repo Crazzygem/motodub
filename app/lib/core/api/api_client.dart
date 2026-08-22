@@ -95,7 +95,10 @@ class ApiClient {
       return ApiResult.ok(json as T);
     } on ApiException catch (e) {
       return ApiResult.err(e.code, e.message);
-    } on DioException {
+    } on DioException catch (e) {
+      // interceptor rejections wrap ApiException inside the DioException
+      final inner = e.error;
+      if (inner is ApiException) return ApiResult.err(inner.code, inner.message);
       return ApiResult.err(
         "NETWORK",
         "Cannot reach server. Is the backend running?",
