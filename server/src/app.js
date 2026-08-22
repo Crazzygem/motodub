@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
+import driverRoutes from "./routes/drivers.routes.js";
 import { authenticate } from "./middlewares/authenticate.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -14,6 +15,7 @@ export function createApp() {
   // Public auth routes live above; everything else under /api requires a
   // valid token (ARCHITECTURE §4 — secure by default).
   app.use("/api", authenticate);
+  app.use("/api", driverRoutes);
 
   app.get("/", (_req, res) => res.redirect("/health"));
 
