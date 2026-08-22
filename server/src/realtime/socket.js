@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
+import { registerLocationHandlers } from "./location.js";
 
 // Module-level handle so events.js can announce rides from anywhere in the
 // service layer. null until attach() runs — tests that call RideService
@@ -33,6 +34,9 @@ export function attach(server) {
     socket.join(`user:${id}`);
     if (role === "admin") socket.join("admin");
   });
+
+  // Task 4.5: location:update heartbeats + location:{driverId} fan-out.
+  registerLocationHandlers(io);
 
   return io;
 }
