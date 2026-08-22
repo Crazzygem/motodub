@@ -92,6 +92,16 @@ export async function getOwnProfile(userId) {
  */
 export async function setOnlineStatus(userId, { online, lat, lng }) {
   const driver = await requireDriver(userId);
+
+  // Task 6.1: a suspended driver cannot go back online (going offline stays
+  // allowed, so an already-online driver can still be switched off cleanly).
+  if (online) {
+    const user = await User.findByPk(userId, { attributes: ["id", "active"] });
+    if (!user || !user.active) {
+      throw businessError("FORBIDDEN", "Driver is suspended");
+    }
+  }
+
   driver.online = online;
   if (lat !== undefined) driver.lat = lat;
   if (lng !== undefined) driver.lng = lng;

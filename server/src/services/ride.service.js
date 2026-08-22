@@ -48,6 +48,15 @@ export async function create(customerId, { driverId, pickup, dropoff }) {
     );
   }
 
+  // Task 6.1 invariant: a suspended (users.active=false) driver is
+  // unbookable — admin action bars the account, not just the deck card.
+  const driverUser = await User.findByPk(driver.user_id, {
+    attributes: ["id", "active"],
+  });
+  if (!driverUser || !driverUser.active) {
+    throw businessError("FORBIDDEN", "Driver is suspended");
+  }
+
   // One active ride per customer, one per driver (§2 invariants 1–2).
   await assertNoActiveRide("customer_id", customerId, "RIDE_BUSY_CUSTOMER");
 
