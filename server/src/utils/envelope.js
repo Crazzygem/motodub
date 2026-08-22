@@ -7,6 +7,7 @@ const STATUS = {
   DRIVER_NOT_VERIFIED: 400,
   RIDE_BUSY_CUSTOMER: 409, // conflict — §2 invariant 2
   RIDE_BUSY_DRIVER: 409, // conflict — §2 invariant 1
+  RIDE_INVALID_TRANSITION: 409, // conflict — §2 table violated
 };
 
 export const ok = (res, data, status = 200) =>

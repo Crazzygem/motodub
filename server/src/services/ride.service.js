@@ -196,3 +196,38 @@ export async function rate(actorId, rideId, rating) {
   });
   return ride.reload();
 }
+
+/**
+ * §4 GET /api/rides/mine — role-scoped history, newest first. An admin is
+ * never a ride participant (the admin feed arrives with Task 6.1), so their
+ * scope is empty here by design.
+ */
+export async function listMine(userId, role) {
+  const column =
+    role === "customer"
+      ? "customer_id"
+      : role === "driver"
+        ? "driver_id"
+        : null;
+  if (!column) return [];
+  return Ride.findAll({
+    where: { [column]: userId },
+    order: [
+      ["created_at", "DESC"],
+      ["id", "DESC"], // tie-break: DATE columns are second-precision
+    ],
+  });
+}
+
+/** §4 GET /api/rides/{id} — visible to participants and admin only. */
+export async function getForViewer(viewerId, viewerRole, rideId) {
+  const ride = await Ride.findByPk(rideId);
+  if (!ride) throw businessError("NOT_FOUND", "Ride not found");
+
+  const isParticipant =
+    ride.customer_id === viewerId || ride.driver_id === viewerId;
+  if (viewerRole !== "admin" && !isParticipant) {
+    throw businessError("FORBIDDEN", "You are not part of this ride");
+  }
+  return ride;
+}
