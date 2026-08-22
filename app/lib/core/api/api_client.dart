@@ -2,6 +2,8 @@ import "dart:async";
 
 import "package:dio/dio.dart";
 
+import "error_messages.dart";
+
 /// Base URL comes from --dart-define (PROJECT.md §4):
 /// emulator → `http://10.0.2.2:3000` · phone → `http://<LAN-IP>:3000`
 const String apiBaseUrl = String.fromEnvironment(
@@ -94,15 +96,18 @@ class ApiClient {
       if (parse != null) return ApiResult.ok(parse(json));
       return ApiResult.ok(json as T);
     } on ApiException catch (e) {
-      return ApiResult.err(e.code, e.message);
+      return ApiResult.err(e.code, errorMessageFor(e.code, serverMessage: e.message));
     } on DioException catch (e) {
       // interceptor rejections wrap ApiException inside the DioException
       final inner = e.error;
-      if (inner is ApiException) return ApiResult.err(inner.code, inner.message);
-      return ApiResult.err(
-        "NETWORK",
-        "Cannot reach server. Is the backend running?",
-      );
+      if (inner is ApiException) {
+        return ApiResult.err(
+          inner.code,
+          errorMessageFor(inner.code, serverMessage: inner.message),
+        );
+      }
+      // timeout / connection refused / no route to host …
+      return ApiResult.err("NETWORK", errorMessageFor("NETWORK"));
     }
   }
 

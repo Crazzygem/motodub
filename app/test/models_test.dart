@@ -447,7 +447,8 @@ void main() {
 
       expect(result.isOk, isFalse);
       expect(result.code, "RIDE_BUSY_DRIVER");
-      expect(result.message, "Driver already has an active ride");
+      // Task 2.4: known codes surface curated friendly copy, not raw server text
+      expect(result.message, "This driver is busy right now. Try another one.");
       expect(result.data, isNull);
     });
   });
