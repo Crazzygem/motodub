@@ -226,9 +226,17 @@ export async function listMine(userId, role) {
   });
 }
 
-/** §4 GET /api/rides/{id} — visible to participants and admin only. */
+/**
+ * §4 GET /api/rides/{id} — visible to participants and admin only. The ride
+ * row carries a `customer` name/rating snapshot (Task 4.6 request card);
+ * the socket payload stays id-only per §6 — REST is the source of truth.
+ */
 export async function getForViewer(viewerId, viewerRole, rideId) {
-  const ride = await Ride.findByPk(rideId);
+  const ride = await Ride.findByPk(rideId, {
+    include: [
+      { model: User, as: "customer", attributes: ["id", "name", "rating"] },
+    ],
+  });
   if (!ride) throw businessError("NOT_FOUND", "Ride not found");
 
   const isParticipant =

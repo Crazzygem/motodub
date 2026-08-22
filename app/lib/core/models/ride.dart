@@ -17,6 +17,8 @@ class Ride {
     this.driverRating,
     this.createdAt,
     this.updatedAt,
+    this.customerName,
+    this.customerAvgRating,
   });
 
   final int id;
@@ -34,6 +36,11 @@ class Ride {
   final int? driverRating;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  // Customer-summary extras from GET /api/rides/{id} (Task 4.6 request
+  // card) — null on rows fetched without the eager-loaded summary.
+  // Distinct from [customerRating], which is this ride's rating COLUMN.
+  final String? customerName;
+  final double? customerAvgRating;
 
   static Ride fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -53,6 +60,9 @@ class Ride {
       driverRating: map["driver_rating"] as int?,
       createdAt: _asDateOrNull(map["created_at"]),
       updatedAt: _asDateOrNull(map["updated_at"]),
+      customerName: (map["customer"] as Map<String, dynamic>?)?["name"] as String?,
+      customerAvgRating:
+          _asDoubleOrNull((map["customer"] as Map<String, dynamic>?)?["rating"]),
     );
   }
 

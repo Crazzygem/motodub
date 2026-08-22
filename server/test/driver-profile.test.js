@@ -94,6 +94,12 @@ function patchOnline(body, token) {
     .send(body);
 }
 
+function getMe(token) {
+  return request(app)
+    .get("/api/drivers/me")
+    .set("Authorization", `Bearer ${token}`);
+}
+
 const vehicleBody = {
   car_model: "Honda Dream",
   plate: "PP-1A-1111",
@@ -265,5 +271,39 @@ describe("PATCH /api/drivers/online", () => {
 
     expect(deck.status).toBe(200);
     expect(deck.body.data.map((c) => c.name)).not.toContain("Deck Dara Jr");
+  });
+});
+
+describe("GET /api/drivers/me", () => {
+  it("rejects a customer with FORBIDDEN", async () => {
+    const res = await getMe(customerToken);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("returns NOT_FOUND for a driver without a profile yet (first-time setup)", async () => {
+    const res = await getMe(signToken({ id: 987654, role: "driver" }));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
+
+  it("returns the signed-in driver's own vehicle profile", async () => {
+    const res = await getMe(
+      signToken({ id: profileDriver.id, role: "driver" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // PATCH /api/drivers above set these — the read must reflect them.
+    expect(res.body.data).toMatchObject({
+      user_id: profileDriver.id,
+      car_model: "Yamaha FX",
+      plate: "PP-1A-1111",
+      license_no: "KH-DL-1111",
+      verified: false,
+      online: false,
+    });
   });
 });

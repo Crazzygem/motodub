@@ -79,6 +79,11 @@ export async function updateOwnProfile(userId, body) {
   return driver;
 }
 
+/** Task 4.6: read own vehicle profile — NOT_FOUND when none yet. */
+export async function getOwnProfile(userId) {
+  return requireDriver(userId);
+}
+
 /**
  * Task 4.1 online toggle — allowed regardless of `verified` (§8 deck filters
  * on verified=1, so an unverified driver never surfaces). updated_at is

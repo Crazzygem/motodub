@@ -1,0 +1,178 @@
+import "package:flutter/material.dart";
+
+import "../../core/models/ride.dart";
+import "../../core/theme/app_theme.dart";
+
+/// The active ride panel: 4-step stepper (DESIGN.md §5 — done=green,
+/// active=amber, pending=line) plus the one CTA the current state allows.
+/// The labels ARE the wire names' UI voice: start → "On my way",
+/// start-ride → "Start ride", complete → "End ride ✓".
+class RideControls extends StatelessWidget {
+  const RideControls({
+    super.key,
+    required this.ride,
+    this.onStart,
+    this.onStartRide,
+    this.onComplete,
+  });
+
+  final Ride ride;
+  final VoidCallback? onStart;
+  final VoidCallback? onStartRide;
+  final VoidCallback? onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final (i, step) in _steps.indexed) ...[
+                if (i > 0) const _StepLine(),
+                Expanded(child: _StepDot(step: step, ride: ride)),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            ride.dropoffAddress,
+            style: theme.textTheme.labelLarge,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          ...switch (ride.status) {
+            "accepted" => [
+                _cta(
+                  context,
+                  label: "On my way",
+                  background: AppColors.amber,
+                  onPressed: onStart,
+                ),
+              ],
+            "en_route" => [
+                _cta(
+                  context,
+                  label: "Start ride",
+                  background: AppColors.amber,
+                  onPressed: onStartRide,
+                ),
+              ],
+            "in_progress" => [
+                _cta(
+                  context,
+                  label: "End ride ✓",
+                  background: AppColors.amber,
+                  onPressed: onComplete,
+                ),
+              ],
+            "completed" => [
+                _cta(
+                  context,
+                  label: "Completed 🎉",
+                  background: AppColors.bookGreen,
+                  onPressed: null,
+                ),
+              ],
+            _ => const <Widget>[],
+          },
+        ],
+      ),
+    );
+  }
+
+  Widget _cta(
+    BuildContext context, {
+    required String label,
+    required Color background,
+    VoidCallback? onPressed,
+  }) {
+    return FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: background,
+        // Contrast rule: amber carries ink text, green carries white.
+        foregroundColor:
+            background == AppColors.amber ? AppColors.ink : Colors.white,
+        disabledBackgroundColor: background,
+        disabledForegroundColor:
+            background == AppColors.amber ? AppColors.ink : Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      onPressed: onPressed,
+      child: Text(label),
+    );
+  }
+}
+
+const _steps = <({String title, String status})>[
+  (title: "Accepted", status: "accepted"),
+  (title: "En route", status: "en_route"),
+  (title: "Riding", status: "in_progress"),
+  (title: "Done", status: "completed"),
+];
+
+class _StepDot extends StatelessWidget {
+  const _StepDot({required this.step, required this.ride});
+
+  final ({String title, String status}) step;
+  final Ride ride;
+
+  @override
+  Widget build(BuildContext context) {
+    final stepIndex = _steps.indexWhere((s) => s.status == step.status);
+    final rideIndex = _steps.indexWhere((s) => s.status == ride.status);
+    final reached = rideIndex >= 0 && stepIndex <= rideIndex;
+    final isCurrent = stepIndex == rideIndex;
+
+    final color = !reached
+        ? AppColors.line
+        : isCurrent
+            ? AppColors.amber
+            : AppColors.bookGreen;
+
+    return Column(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            step.title,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: reached ? AppColors.ink : AppColors.faint,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StepLine extends StatelessWidget {
+  const _StepLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 2,
+      margin: const EdgeInsets.only(top: 6),
+      color: AppColors.line,
+    );
+  }
+}

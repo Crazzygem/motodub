@@ -8,6 +8,7 @@ const router = Router();
 router.get("/drivers/nearby", authorize("customer"), driver.nearby);
 
 // §4 matrix: vehicle profile + online toggle → driver only.
+router.get("/drivers/me", authorize("driver"), driver.me);
 router.post("/drivers", authorize("driver"), driver.createProfile);
 router.patch("/drivers", authorize("driver"), driver.updateProfile);
 router.patch("/drivers/online", authorize("driver"), driver.setOnline);

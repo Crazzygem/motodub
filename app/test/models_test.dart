@@ -257,6 +257,43 @@ void main() {
       expect(roundTrip.pickupAddress, "Riverside");
       expect(roundTrip.dropoffLng, 104.85);
     });
+
+    test("fromJson carries the customer summary extras (Task 4.6 card)", () {
+      final ride = Ride.fromJson(const {
+        "id": 45,
+        "customer_id": 9,
+        "driver_id": 4,
+        "status": "requested",
+        "pickup_lat": "11.5564000",
+        "pickup_lng": "104.9282000",
+        "pickup_address": "Central Market",
+        "dropoff_lat": "11.5449000",
+        "dropoff_lng": "104.8922000",
+        "dropoff_address": "Airport",
+        "fare": null,
+        "customer_rating": null,
+        "driver_rating": null,
+        "customer": {"id": 9, "name": "Srey", "rating": "4.5"},
+      });
+      expect(ride.customerName, "Srey");
+      expect(ride.customerAvgRating, 4.5);
+
+      // Rows without the eager-loaded summary stay null — history lists etc.
+      final bare = Ride.fromJson(const {
+        "id": 46,
+        "customer_id": 9,
+        "driver_id": 4,
+        "status": "accepted",
+        "pickup_lat": 11.5564,
+        "pickup_lng": 104.9282,
+        "pickup_address": "Central Market",
+        "dropoff_lat": 11.5449,
+        "dropoff_lng": 104.8922,
+        "dropoff_address": "Airport",
+      });
+      expect(bare.customerName, isNull);
+      expect(bare.customerAvgRating, isNull);
+    });
   });
 
   group("RideRepo", () {

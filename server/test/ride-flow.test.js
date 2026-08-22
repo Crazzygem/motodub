@@ -231,6 +231,17 @@ describe("happy path — srey books dara, full lifecycle, both rate", () => {
     expect(admin.body.data.id).toBe(rideId);
   });
 
+  it("carries the customer name/rating summary for the driver's request card", async () => {
+    const res = await get(daraToken, `/api/rides/${rideId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.customer).toMatchObject({
+      id: srey.id,
+      name: srey.name,
+    });
+    expect(res.body.data.customer.rating).toBeDefined();
+  });
+
   it("rejects stars outside 1–5 with VALIDATION_ERROR", async () => {
     const res = await post(sreyToken, `/api/rides/${rideId}/rate`, {
       stars: 6,

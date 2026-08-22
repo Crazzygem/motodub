@@ -7,6 +7,10 @@ class DriverRepo {
 
   final ApiClient _client;
 
+  /// Own vehicle profile (Task 4.6) — `NOT_FOUND` before first-time setup.
+  Future<ApiResult<Driver>> me() =>
+      _client.get<Driver>("/api/drivers/me", parse: Driver.fromJson);
+
   /// Swipe-deck source (§8): verified + online + fresh + not busy,
   /// ≤ 10 km, sorted by distance, top 20. Returns deck cards.
   Future<ApiResult<List<Driver>>> nearby({

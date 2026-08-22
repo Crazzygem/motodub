@@ -81,3 +81,14 @@ export async function setOnline(req, res) {
     return fail(res, err.code, err.message);
   }
 }
+
+// Task 4.6 — the driver app's vehicle card reads its own profile; a driver
+// with none yet gets NOT_FOUND (the first-time-setup trigger client-side).
+export async function me(req, res) {
+  try {
+    return ok(res, await driverService.getOwnProfile(req.user.id));
+  } catch (err) {
+    if (!err.code) throw err;
+    return fail(res, err.code, err.message);
+  }
+}
