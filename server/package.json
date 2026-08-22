@@ -7,6 +7,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "migrate": "sequelize db:migrate --config src/config/config.js --models-path src/models --migrations-path migrations --seeders-path seeders",
     "db:check": "node src/scripts/dbcheck.js"
   },
   "keywords": [],
@@ -26,6 +27,7 @@
   "devDependencies": {
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
+    "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2"
   }
 }
