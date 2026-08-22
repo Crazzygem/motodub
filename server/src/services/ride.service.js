@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { Driver, Ride, User } from "../models/index.js";
 import { sequelize } from "../config/db.js";
+import { notifyRide } from "../realtime/events.js";
 
 // ARCHITECTURE §2 invariant: a ride is "active" from requested → in_progress.
 const ACTIVE_RIDE_STATUSES = ["requested", "accepted", "en_route", "in_progress"];
@@ -53,7 +54,7 @@ export async function create(customerId, { driverId, pickup, dropoff }) {
   // rides.driver_id references users.id, i.e. Driver.user_id.
   await assertNoActiveRide("driver_id", driver.user_id, "RIDE_BUSY_DRIVER");
 
-  return Ride.create({
+  const ride = await Ride.create({
     customer_id: customerId,
     driver_id: driver.user_id,
     status: "requested",
@@ -65,6 +66,9 @@ export async function create(customerId, { driverId, pickup, dropoff }) {
     dropoff_address: dropoff.address,
     // fare is reserved and NEVER set (§6/§9).
   });
+  // §6: the socket only announces — REST already committed the row.
+  notifyRide(ride);
+  return ride;
 }
 
 async function loadOwnRide(rideId, actorId, actorColumn) {
@@ -83,7 +87,10 @@ async function advance(ride, toStatus, fromStatuses, action) {
       `Cannot ${action} a ${ride.status} ride`,
     );
   }
-  return ride.update({ status: toStatus });
+  const updated = await ride.update({ status: toStatus });
+  // Every §2 transition funnels through here — one hook announces them all.
+  notifyRide(updated);
+  return updated;
 }
 
 /** §2: `requested` → `accepted` (the ride's own driver only). */
