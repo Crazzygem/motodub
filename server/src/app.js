@@ -3,6 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import driverRoutes from "./routes/drivers.routes.js";
 import rideRoutes from "./routes/rides.routes.js";
+import usersRoutes from "./routes/users.routes.js";
 import { authenticate } from "./middlewares/authenticate.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -18,6 +19,7 @@ export function createApp() {
   app.use("/api", authenticate);
   app.use("/api", driverRoutes);
   app.use("/api", rideRoutes);
+  app.use("/api", usersRoutes);
 
   app.get("/", (_req, res) => res.redirect("/health"));
 
