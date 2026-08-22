@@ -8,6 +8,8 @@
     "start": "node src/server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "migrate": "sequelize db:migrate --config src/config/config.js --models-path src/models --migrations-path migrations --seeders-path seeders",
+    "seed": "node src/seeders/seed.js",
+    "seed:reset": "node src/seeders/seed.js --reset",
     "db:check": "node src/scripts/dbcheck.js"
   },
   "keywords": [],
