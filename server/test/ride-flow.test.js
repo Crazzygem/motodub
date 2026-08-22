@@ -242,6 +242,24 @@ describe("happy path — srey books dara, full lifecycle, both rate", () => {
     expect(res.body.data.customer.rating).toBeDefined();
   });
 
+  // Task 5.1: the tracking screen's driver info card needs car, plate and
+  // phone — none of which live on the ride row itself.
+  it("carries the driver car/phone snapshot for the customer's tracking screen", async () => {
+    const daraDriver = await Driver.findOne({ where: { user_id: dara.id } });
+    const res = await get(sreyToken, `/api/rides/${rideId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.driver).toMatchObject({
+      id: dara.id,
+      name: dara.name,
+      phone: dara.phone,
+      car_model: daraDriver.car_model,
+      plate: daraDriver.plate,
+    });
+    // users.rating is DECIMAL — serialized as a string ("5.0").
+    expect(parseFloat(res.body.data.driver.rating)).toBe(Number(dara.rating));
+  });
+
   it("rejects stars outside 1–5 with VALIDATION_ERROR", async () => {
     const res = await post(sreyToken, `/api/rides/${rideId}/rate`, {
       stars: 6,

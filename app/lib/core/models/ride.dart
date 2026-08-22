@@ -19,6 +19,10 @@ class Ride {
     this.updatedAt,
     this.customerName,
     this.customerAvgRating,
+    this.driverName,
+    this.driverPhone,
+    this.driverCarModel,
+    this.driverPlate,
   });
 
   final int id;
@@ -41,6 +45,12 @@ class Ride {
   // Distinct from [customerRating], which is this ride's rating COLUMN.
   final String? customerName;
   final double? customerAvgRating;
+  // Driver snapshot from GET /api/rides/{id} (Task 5.1 tracking card) —
+  // car/plate come off drivers, name/phone off users; null when absent.
+  final String? driverName;
+  final String? driverPhone;
+  final String? driverCarModel;
+  final String? driverPlate;
 
   static Ride fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -63,8 +73,15 @@ class Ride {
       customerName: (map["customer"] as Map<String, dynamic>?)?["name"] as String?,
       customerAvgRating:
           _asDoubleOrNull((map["customer"] as Map<String, dynamic>?)?["rating"]),
+      driverName: _driverString(map, "name"),
+      driverPhone: _driverString(map, "phone"),
+      driverCarModel: _driverString(map, "car_model"),
+      driverPlate: _driverString(map, "plate"),
     );
   }
+
+  static String? _driverString(Map<String, dynamic> map, String key) =>
+      (map["driver"] as Map<String, dynamic>?)?[key] as String?;
 
   Map<String, dynamic> toJson() => {
         "id": id,

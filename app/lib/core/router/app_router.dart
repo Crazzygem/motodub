@@ -6,6 +6,7 @@ import "../../features/auth/login_screen.dart";
 import "../../features/auth/register_screen.dart";
 import "../../features/customer/customer_home_screen.dart";
 import "../../features/driver/driver_home_screen.dart";
+import "../../features/rides/rating_screen.dart";
 import "../../features/tracking/tracking_screen.dart";
 import "../auth/auth_state.dart";
 
@@ -43,6 +44,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: "/tracking/:rideId",
         builder: (_, state) => TrackingScreen(
+          rideId: int.tryParse(state.pathParameters["rideId"] ?? "") ?? 0,
+        ),
+      ),
+      GoRoute(
+        path: "/rating/:rideId",
+        builder: (_, state) => RatingScreen(
           rideId: int.tryParse(state.pathParameters["rideId"] ?? "") ?? 0,
         ),
       ),
