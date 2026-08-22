@@ -4,23 +4,28 @@ import "package:go_router/go_router.dart";
 
 import "../../core/auth/auth_state.dart";
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  String _role = "customer";
   bool _submitting = false;
   String? _error;
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -34,9 +39,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
 
-    final error = await ref.read(authProvider.notifier).login(
-          _emailController.text.trim(),
-          _passwordController.text,
+    final error = await ref.read(authProvider.notifier).register(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          role: _role,
         );
 
     if (!mounted) return;
@@ -49,6 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text("Create account")),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -60,11 +69,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text("MotoDub", style: Theme.of(context).textTheme.displaySmall),
-                  const SizedBox(height: 4),
-                  Text("Sign in to book a ride",
-                      style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 28),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: "Name",
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) =>
+                        ((value?.trim().length ?? 0) < 2) ? "Enter your name" : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: "Phone",
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) =>
+                        ((value?.trim().length ?? 0) < 6) ? "Enter a valid phone number" : null,
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -75,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     autocorrect: false,
                     validator: (value) {
                       final v = value?.trim() ?? "";
-                      if (v.isEmpty) return "Enter your email";
+                      if (v.isEmpty) return "Enter an email";
                       if (!v.contains("@")) return "Enter a valid email";
                       return null;
                     },
@@ -85,11 +110,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(
-                      labelText: "Password",
+                      labelText: "Password (min. 8 characters)",
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
-                        (value == null || value.isEmpty) ? "Enter your password" : null,
+                        ((value?.length ?? 0) < 8) ? "Password must be at least 8 characters" : null,
+                  ),
+                  const SizedBox(height: 16),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: "customer", label: Text("Customer")),
+                      ButtonSegment(value: "driver", label: Text("Driver")),
+                      ButtonSegment(value: "admin", label: Text("Admin")),
+                    ],
+                    selected: {_role},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _role = selection.first),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 16),
@@ -110,12 +146,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text("Log in"),
+                        : const Text("Create account"),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () => context.push("/register"),
-                    child: const Text("No account? Register"),
+                    onPressed: () => context.push("/login"),
+                    child: const Text("Already have an account? Log in"),
                   ),
                 ],
               ),
