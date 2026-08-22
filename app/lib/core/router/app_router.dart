@@ -6,6 +6,7 @@ import "../../features/auth/login_screen.dart";
 import "../../features/auth/register_screen.dart";
 import "../../features/customer/customer_home_screen.dart";
 import "../../features/driver/driver_home_screen.dart";
+import "../../features/tracking/tracking_screen.dart";
 import "../auth/auth_state.dart";
 
 /// Auth-aware router: no session → /login · session → dashboard by role.
@@ -26,7 +27,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!session.isAuthenticated) return authArea ? null : "/login";
       if (authArea) return "/${session.role}";
-      if (!state.matchedLocation.startsWith("/${session.role}")) {
+      // /tracking/{id} is role-neutral (§4: every role may view a ride) —
+      // don't bounce it back to the caller's dashboard.
+      final onTracking = state.matchedLocation.startsWith("/tracking");
+      if (!onTracking && !state.matchedLocation.startsWith("/${session.role}")) {
         return "/${session.role}";
       }
       return null;
@@ -36,6 +40,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: "/register", builder: (_, _) => const RegisterScreen()),
       GoRoute(
           path: "/customer", builder: (_, _) => const CustomerHomeScreen()),
+      GoRoute(
+        path: "/tracking/:rideId",
+        builder: (_, state) => TrackingScreen(
+          rideId: int.tryParse(state.pathParameters["rideId"] ?? "") ?? 0,
+        ),
+      ),
       GoRoute(path: "/driver", builder: (_, _) => const DriverHomeScreen()),
       GoRoute(path: "/admin", builder: (_, _) => const AdminScreen()),
     ],

@@ -4,6 +4,9 @@ const STATUS = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  DRIVER_NOT_VERIFIED: 400,
+  RIDE_BUSY_CUSTOMER: 409, // conflict — §2 invariant 2
+  RIDE_BUSY_DRIVER: 409, // conflict — §2 invariant 1
 };
 
 export const ok = (res, data, status = 200) =>

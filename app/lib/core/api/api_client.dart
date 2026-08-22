@@ -38,9 +38,18 @@ class ApiResult<T> {
 }
 
 class ApiClient {
-  ApiClient({Dio? dio}) : _dio = dio ?? Dio(_baseOptions()) {
+  /// Returns the persisted session JWT, or null when logged out. Re-read per
+  /// request so login/logout take effect immediately (§5: Bearer everywhere).
+  ApiClient({Dio? dio, this.tokenProvider}) : _dio = dio ?? Dio(_baseOptions()) {
     _dio.interceptors.addAll([
       InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final token = tokenProvider?.call();
+          if (token != null && token.isNotEmpty) {
+            options.headers["Authorization"] = "Bearer $token";
+          }
+          handler.next(options);
+        },
         onResponse: (response, handler) {
           final body = response.data;
           if (body is Map<String, dynamic>) {
@@ -79,6 +88,9 @@ class ApiClient {
       );
 
   final Dio _dio;
+
+  /// Session token source — null provider or null token sends no header.
+  final String? Function()? tokenProvider;
 
   Future<ApiResult<T>> _send<T>(
     String method,

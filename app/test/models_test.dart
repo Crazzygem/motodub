@@ -31,14 +31,17 @@ class _FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-ApiClient _clientWith(ResponseBody Function(RequestOptions) handler) {
+ApiClient _clientWith(
+  ResponseBody Function(RequestOptions) handler, {
+  String? Function()? tokenProvider,
+}) {
   final dio = Dio(
     BaseOptions(
       baseUrl: "http://test.local",
       validateStatus: (_) => true, // envelope decides success, like the real client
     ),
   )..httpClientAdapter = _FakeAdapter(handler);
-  return ApiClient(dio: dio);
+  return ApiClient(dio: dio, tokenProvider: tokenProvider);
 }
 
 ResponseBody _ok(dynamic data) => ResponseBody.fromString(
@@ -450,6 +453,50 @@ void main() {
       // Task 2.4: known codes surface curated friendly copy, not raw server text
       expect(result.message, "This driver is busy right now. Try another one.");
       expect(result.data, isNull);
+    });
+  });
+
+  group("ApiClient auth header", () {
+    Future<RequestOptions> capture({String? Function()? tokenProvider}) async {
+      late RequestOptions captured;
+      final repo = RideRepo(_clientWith(
+        (options) {
+          captured = options;
+          return _ok(const {
+            "id": 90,
+            "customer_id": 1,
+            "driver_id": 4,
+            "status": "requested",
+            "pickup_lat": 11.5,
+            "pickup_lng": 104.9,
+            "pickup_address": "a",
+            "dropoff_lat": 11.5,
+            "dropoff_lng": 104.9,
+            "dropoff_address": "b",
+          });
+        },
+        tokenProvider: tokenProvider,
+      ));
+      await repo.create(
+        driverId: 4,
+        pickupLat: 11.5,
+        pickupLng: 104.9,
+        pickupAddress: "a",
+        dropoffLat: 11.5,
+        dropoffLng: 104.9,
+        dropoffAddress: "b",
+      );
+      return captured;
+    }
+
+    test("attaches the persisted JWT as Bearer on every request", () async {
+      final options = await capture(tokenProvider: () => "tok-abc-123");
+      expect(options.headers["authorization"], "Bearer tok-abc-123");
+    });
+
+    test("sends no Authorization header without a session", () async {
+      final options = await capture();
+      expect(options.headers.containsKey("authorization"), isFalse);
     });
   });
 

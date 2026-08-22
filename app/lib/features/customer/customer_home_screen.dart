@@ -2,23 +2,20 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/auth/auth_state.dart";
+import "../booking/booking_sheet.dart";
+import "../deck/swipe_deck.dart";
 
-/// Placeholder — the customer swipe deck lands in Phase 3.
+/// Customer landing page — the swipe deck IS the home (Task 3.5 wiring
+/// bridge). Right-swipe hands the driver to the booking confirm sheet.
 class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Customer shell",
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            LogoutButton(),
-          ],
+      body: SafeArea(
+        child: SwipeDeck(
+          onSwipedRight: (driver) => showBookingSheet(context, driver),
         ),
       ),
     );
