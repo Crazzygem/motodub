@@ -7,6 +7,7 @@ import "package:motodub/core/api/driver_repo.dart";
 import "package:motodub/core/api/error_messages.dart";
 import "package:motodub/core/models/driver.dart";
 import "package:motodub/features/deck/deck_provider.dart";
+import "package:motodub/features/deck/mock_drivers.dart" show useMockDrivers;
 import "package:motodub/features/deck/swipe_deck.dart";
 
 Driver _driver(int id, String name) => Driver(
@@ -149,20 +150,24 @@ void main() {
     );
   });
 
-  testWidgets("server error surfaces the friendly error banner",
-      (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [driverRepoProvider.overrideWithValue(_FailingRepo())],
-        child: const MaterialApp(home: Scaffold(body: SwipeDeck())),
-      ),
-    );
-    await tester.pumpAndSettle();
+  // Real-flow guard — in a USE_MOCK_DRIVERS build the deck never calls the
+  // repo, so there is no error state to surface.
+  if (!useMockDrivers) {
+    testWidgets("server error surfaces the friendly error banner",
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [driverRepoProvider.overrideWithValue(_FailingRepo())],
+          child: const MaterialApp(home: Scaffold(body: SwipeDeck())),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(
-      find.text("Cannot reach server. Is the backend running?"),
-      findsOneWidget,
-    );
-    expect(find.text("Retry"), findsOneWidget);
-  });
+      expect(
+        find.text("Cannot reach server. Is the backend running?"),
+        findsOneWidget,
+      );
+      expect(find.text("Retry"), findsOneWidget);
+    });
+  }
 }

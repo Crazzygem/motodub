@@ -4,16 +4,20 @@ import "package:go_router/go_router.dart";
 
 import "../../core/auth/auth_state.dart";
 import "../booking/booking_sheet.dart";
+import "../deck/deck_provider.dart";
 import "../deck/swipe_deck.dart";
 
 /// Customer landing page — the swipe deck IS the home (Task 3.5 wiring
 /// bridge). Right-swipe hands the driver to the booking confirm sheet.
 /// The slim top bar only carries the history entry point (Task 5.2).
-class CustomerHomeScreen extends StatelessWidget {
+/// In mock-driver mode (USE_MOCK_DRIVERS) the sheet is skipped: a mock
+/// driverId would 404 on the real API, so the card just flies off.
+class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mockMode = ref.watch(deckProvider.notifier).mockMode;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -28,7 +32,10 @@ class CustomerHomeScreen extends StatelessWidget {
             ),
             Expanded(
               child: SwipeDeck(
-                onSwipedRight: (driver) => showBookingSheet(context, driver),
+                onSwipedRight: (driver) {
+                  if (mockMode) return; // mock ids never exist on the API
+                  showBookingSheet(context, driver);
+                },
               ),
             ),
           ],
