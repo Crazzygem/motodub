@@ -119,7 +119,13 @@ const RIDES = [
 // Upsert-style: find by key, update with seed values or create.
 async function upsert(model, where, values) {
   const row = await model.findOne({ where });
-  if (row) return row.update(values);
+  if (row) {
+    // Static update ALWAYS emits SQL — instance.update() skips when nothing
+    // changed, which would freeze the managed updated_at heartbeat.
+    // Scoped to the found row's PK: the natural-key where may match extras.
+    await model.update(values, { where: { id: row.id } });
+    return row;
+  }
   return model.create({ ...where, ...values });
 }
 
