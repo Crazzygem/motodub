@@ -30,12 +30,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!session.isAuthenticated) return authArea ? null : "/login";
       if (authArea) return "/${session.role}";
       // /tracking/{id} is role-neutral (§4: every role may view a ride) —
-      // don't bounce it back to the caller's dashboard. Same for /history:
-      // both roles land there from their home screen (Task 5.2).
-      final onTracking =
+      // don't bounce it back to the caller's dashboard. Same for /history
+      // (Task 5.2: both roles land there from their home screen) and
+      // /rating (Task 7.1: both parties rate after `completed`).
+      final roleNeutral =
           state.matchedLocation.startsWith("/tracking") ||
+              state.matchedLocation.startsWith("/rating") ||
               state.matchedLocation.startsWith("/history");
-      if (!onTracking && !state.matchedLocation.startsWith("/${session.role}")) {
+      if (!roleNeutral && !state.matchedLocation.startsWith("/${session.role}")) {
         return "/${session.role}";
       }
       return null;
@@ -55,6 +57,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: "/rating/:rideId",
         builder: (_, state) => RatingScreen(
           rideId: int.tryParse(state.pathParameters["rideId"] ?? "") ?? 0,
+          viewerRole: auth.valueOrNull?.role,
         ),
       ),
       GoRoute(path: "/driver", builder: (_, _) => const DriverHomeScreen()),

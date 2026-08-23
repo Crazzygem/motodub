@@ -13,7 +13,7 @@ import "tracking_provider.dart";
 /// Live tracking (Task 5.1): flutter_map with pickup/dropoff pins, dashed
 /// route and a heartbeat-driven driver marker; below it the 5-step status
 /// stepper, driver info card once accepted, and cancel per §2 rules.
-/// `completed` hands over to /rating/{rideId} (stub until Task 7.1).
+/// `completed` hands over to /rating/{rideId} (Task 7.1 rating screen).
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key, required this.rideId, this.tileLayer});
 

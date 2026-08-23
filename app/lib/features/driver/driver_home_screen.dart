@@ -21,6 +21,17 @@ class DriverHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final home = ref.watch(driverProvider);
 
+    // Task 7.1 — when an active ride turns `completed` (complete tap or
+    // socket reconcile), hand off to the rating screen exactly once.
+    ref.listen(driverProvider, (previous, next) {
+      final completed = next.valueOrNull?.lastCompletedRideId;
+      if (completed == null ||
+          completed == previous?.valueOrNull?.lastCompletedRideId) {
+        return;
+      }
+      context.push("/rating/$completed");
+    });
+
     return Scaffold(
       body: SafeArea(
         child: home.when(

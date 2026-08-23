@@ -30,6 +30,7 @@ class DriverHomeState {
     this.incoming,
     this.active,
     this.error,
+    this.lastCompletedRideId,
   });
 
   final bool online; // mirrors drivers.online
@@ -37,6 +38,11 @@ class DriverHomeState {
   final Ride? incoming; // requested-for-me, awaiting Accept/Decline
   final Ride? active; // accepted | en_route | in_progress
   final String? error;
+
+  /// Set when a ride under this driver's control turns `completed` (own
+  /// complete tap or socket reconcile) — Task 7.1's one-shot handoff to
+  /// /rating/{id}. Cancelled/declined rides never set it.
+  final int? lastCompletedRideId;
 
   bool get hasRide => incoming != null || active != null;
 }
@@ -184,6 +190,8 @@ class DriverNotifier extends AsyncNotifier<DriverHomeState> {
       vehicle: current.vehicle,
       incoming: current.incoming,
       active: finished ? null : ride,
+      lastCompletedRideId:
+          ride.status == "completed" ? ride.id : current.lastCompletedRideId,
     ));
   }
 
@@ -246,6 +254,10 @@ class DriverNotifier extends AsyncNotifier<DriverHomeState> {
           state = AsyncData(DriverHomeState(
             online: current.online,
             vehicle: current.vehicle,
+            // Admin/customer-side completion still owes the driver their
+            // rating handoff; cancellations never navigate.
+            lastCompletedRideId:
+                ride.status == "completed" ? ride.id : current.lastCompletedRideId,
           ));
         }
     }
