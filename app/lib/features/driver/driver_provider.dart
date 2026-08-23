@@ -53,6 +53,7 @@ const _heartbeatPeriod = Duration(seconds: 5);
 class DriverNotifier extends AsyncNotifier<DriverHomeState> {
   Timer? _heartbeat;
   StreamSubscription<RideEvent>? _events;
+  bool _toggling = false; // one presence PATCH at a time — no polarity races
 
   /// Pull-to-refresh / reconnect reconcile — re-runs the REST boot.
   void refresh() => ref.invalidateSelf();
@@ -109,43 +110,60 @@ class DriverNotifier extends AsyncNotifier<DriverHomeState> {
   }
 
   /// Online toggle → `PATCH /drivers/online` (server stamps lat/lng +
-  /// updated_at). Success starts/stops the heartbeat stream.
+  /// updated_at). Optimistic flip, then the server response becomes the
+  /// only truth: on success it is adopted verbatim (and drives the
+  /// heartbeat), on failure the UI falls back to offline — never pretend
+  /// presence we can't confirm.
   Future<void> toggleOnline(bool value) async {
     final current = state.valueOrNull;
-    if (current == null || current.vehicle == null || current.online == value) {
+    if (_toggling ||
+        current == null ||
+        current.vehicle == null ||
+        current.online == value) {
       return;
     }
+    _toggling = true;
     state = AsyncData(DriverHomeState(
-      online: current.online,
+      online: value, // optimistic — the switch answers instantly
       vehicle: current.vehicle,
       incoming: current.incoming,
       active: current.active,
+      lastCompletedRideId: current.lastCompletedRideId,
     ));
 
     final fix = await devicePosition() ?? phnomPenhCenter;
-    final result =
-        await ref.read(driverRepoProvider).setOnline(value, lat: fix.lat, lng: fix.lng);
-    final base = state.valueOrNull ?? current;
+    final result = await ref
+        .read(driverRepoProvider)
+        .setOnline(value, lat: fix.lat, lng: fix.lng);
+    _toggling = false;
 
+    final base = state.valueOrNull ?? current;
     if (!result.isOk) {
-      // Toggle failed — stay in the previous presence, surface why.
+      // Toggle failed — fail-safe to offline and surface why. Heartbeats
+      // stay quiet until a confirmed success turns them back on.
+      _stopHeartbeat();
       state = AsyncData(DriverHomeState(
-        online: base.online,
+        online: false,
         vehicle: base.vehicle,
         incoming: base.incoming,
         active: base.active,
         error: result.message,
+        lastCompletedRideId: base.lastCompletedRideId,
       ));
       return;
     }
 
+    // Adopt the server-confirmed value — never trust the requested one
+    // alone (polarity guard).
+    final confirmed = result.data?.online ?? value;
+    confirmed ? _startHeartbeat() : _stopHeartbeat();
     state = AsyncData(DriverHomeState(
-      online: result.data?.online ?? value,
+      online: confirmed,
       vehicle: result.data ?? base.vehicle,
       incoming: base.incoming,
       active: base.active,
+      lastCompletedRideId: base.lastCompletedRideId,
     ));
-    value ? _startHeartbeat() : _stopHeartbeat();
   }
 
   /// First-time vehicle creation → `POST /drivers`.
@@ -284,8 +302,32 @@ class DriverNotifier extends AsyncNotifier<DriverHomeState> {
   }
 
   Future<void> _sendFix() async {
+    final socket = ref.read(socketClientProvider);
+    // Fail-safe (§6): telemetry that can't leave the device lets the server
+    // sweep us stale — reconcile to offline instead of pretending.
+    if (!socket.isConnected) {
+      _presenceLost();
+      return;
+    }
     final fix = await devicePosition() ?? phnomPenhCenter;
-    ref.read(socketClientProvider).sendLocationUpdate(fix.lat, fix.lng);
+    socket.sendLocationUpdate(fix.lat, fix.lng);
+  }
+
+  /// Network reality disagrees with our online belief — flip the UI to
+  /// offline and stop the timer. The next successful toggle is the only
+  /// way back online.
+  void _presenceLost() {
+    final current = state.valueOrNull;
+    if (current == null || !current.online) return;
+    _stopHeartbeat();
+    state = AsyncData(DriverHomeState(
+      online: false,
+      vehicle: current.vehicle,
+      incoming: current.incoming,
+      active: current.active,
+      error: current.error,
+      lastCompletedRideId: current.lastCompletedRideId,
+    ));
   }
 
   void _teardown() {

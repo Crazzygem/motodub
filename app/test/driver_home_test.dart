@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -23,6 +25,17 @@ const _vehicle = Driver(
   licenseNo: "KH-DL-1111",
   verified: true,
   online: false,
+  pricePerKm: 1.20,
+);
+
+const _onlineVehicle = Driver(
+  id: 4,
+  userId: 40,
+  carModel: "Honda Dream",
+  plate: "PP-1A-2345",
+  licenseNo: "KH-DL-1111",
+  verified: true,
+  online: true,
   pricePerKm: 1.20,
 );
 
@@ -66,6 +79,10 @@ class _StubDriverRepo extends DriverRepo {
   ApiResult<Driver>? setOnlineResult;
   ApiResult<Driver>? createResult;
 
+  /// When set, setOnline parks until released — lets tests observe the
+  /// in-flight window (optimistic UI, double-tap guard).
+  Completer<void>? setOnlineGate;
+
   final List<bool> onlineCalls = <bool>[];
   Map<String, dynamic>? createdPayload;
 
@@ -79,6 +96,7 @@ class _StubDriverRepo extends DriverRepo {
     double? lng,
   }) async {
     onlineCalls.add(online);
+    if (setOnlineGate != null) await setOnlineGate!.future;
     return setOnlineResult ??
         ApiResult.ok(Driver(
           id: _vehicle.id,
@@ -148,7 +166,12 @@ class _FakeSocket extends SocketClient {
   int connectCalls = 0;
 
   @override
-  void connect() => connectCalls++;
+  void connect() {
+    connectCalls++;
+    // Pretend the handshake completed so isConnected-driven behavior
+    // (heartbeat liveness checks) runs for real in tests.
+    handleEvent("__connect", null);
+  }
 
   @override
   void sendLocationUpdate(double lat, double lng) {
@@ -232,6 +255,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(driverRepo.onlineCalls, [true]);
+    // The server-confirmed response is adopted as the UI truth.
+    expect(find.text("You're online"), findsOneWidget);
+    expect(find.text("Receiving ride requests"), findsOneWidget);
 
     // One heartbeat period later the fix went out over the socket seam —
     // no geolocator plugin exists yet, so the PP-center fallback applies.
@@ -266,6 +292,148 @@ void main() {
 
     await tester.pump(const Duration(seconds: 12));
     expect(socket.locationUpdates.length, whileOnline); // frozen
+  });
+
+  testWidgets("toggle shows the requested presence immediately while the "
+      "PATCH is still in flight (optimistic)", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo = _StubDriverRepo(meResult: const ApiResult.ok(_vehicle))
+      ..setOnlineGate = Completer<void>();
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch));
+    await tester.pump(); // optimistic state lands; PATCH still parked
+
+    expect(driverRepo.onlineCalls, [true]);
+    expect(find.text("You're online"), findsOneWidget);
+
+    driverRepo.setOnlineGate!.complete();
+    await tester.pumpAndSettle();
+
+    // Server confirmed — the optimistic flip sticks and heartbeats run.
+    expect(find.text("You're online"), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    expect(socket.locationUpdates, isNotEmpty);
+  });
+
+  testWidgets("taps during an in-flight toggle are ignored — one dispatch, "
+      "no polarity race", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo = _StubDriverRepo(meResult: const ApiResult.ok(_vehicle))
+      ..setOnlineGate = Completer<void>();
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch));
+    await tester.pump(); // switch now displays ON
+    await tester.tap(find.byType(Switch)); // rapid second tap → would be OFF
+    driverRepo.setOnlineGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(driverRepo.onlineCalls, [true]); // exactly one PATCH, polarity kept
+    expect(find.text("You're online"), findsOneWidget);
+  });
+
+  testWidgets("toggle PATCH failure reverts offline, surfaces the reason, "
+      "and never starts heartbeats", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo = _StubDriverRepo(meResult: const ApiResult.ok(_vehicle))
+      ..setOnlineResult = const ApiResult.err("NETWORK", "network gone");
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    expect(driverRepo.onlineCalls, [true]);
+    expect(find.text("network gone"), findsOneWidget); // mapped error surfaced
+    expect(find.text("You're online"), findsNothing); // reverted
+
+    await tester.pump(const Duration(seconds: 11));
+    expect(socket.locationUpdates, isEmpty); // fail-safe: no heartbeats
+  });
+
+  testWidgets("fresh boot mirrors the SERVER profile: offline profile means "
+      "an OFF switch and a quiet heartbeat timer", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo =
+        _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)); // online:false
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    expect(driverRepo.onlineCalls, isEmpty);
+    expect(find.text("You're offline"), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 11));
+    expect(socket.locationUpdates, isEmpty); // nothing restored from cache
+  });
+
+  testWidgets("fresh boot mirrors the SERVER profile: online profile means "
+      "ON and heartbeats stream right away", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo =
+        _StubDriverRepo(meResult: const ApiResult.ok(_onlineVehicle));
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("You're online"), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    expect(socket.locationUpdates, isNotEmpty);
+    expect(socket.locationUpdates.first.lat, closeTo(11.5564, 0.0001));
+    expect(socket.locationUpdates.first.lng, closeTo(104.9282, 0.0001));
+  });
+
+  testWidgets("a heartbeat tick with the socket down fails safe: UI flips "
+      "offline and heartbeats freeze", (tester) async {
+    final socket = _FakeSocket();
+    final driverRepo = _StubDriverRepo(meResult: const ApiResult.ok(_vehicle));
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+      socket: socket,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch)); // online
+    await tester.pumpAndSettle();
+    expect(find.text("You're online"), findsOneWidget);
+
+    socket.handleEvent("__disconnect", null); // connection dies mid-session
+    await tester.pump(const Duration(seconds: 5)); // next tick notices
+
+    expect(find.text("You're offline"), findsOneWidget);
+
+    final frozenAt = socket.locationUpdates.length;
+    await tester.pump(const Duration(seconds: 11));
+    expect(socket.locationUpdates.length, frozenAt); // timer stopped
   });
 
   testWidgets("first-time setup form submits the vehicle-create payload", (
