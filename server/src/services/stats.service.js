@@ -71,6 +71,12 @@ function toDriverItem(driver) {
     rating: Number(driver.User.rating),
     active: Boolean(driver.User.active),
     price_per_km: Number(driver.price_per_km),
+    // Task 6.3 live map: vehicle identity + last heartbeat position.
+    // DECIMAL columns surface as strings — coerce so pins get numbers.
+    car_model: driver.car_model,
+    plate: driver.plate,
+    lat: driver.lat === null ? null : Number(driver.lat),
+    lng: driver.lng === null ? null : Number(driver.lng),
     verified: Boolean(driver.verified),
     online: Boolean(driver.online),
   };

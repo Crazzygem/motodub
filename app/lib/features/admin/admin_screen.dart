@@ -7,6 +7,7 @@ import "../auth/providers.dart" show apiClientProvider;
 import "../customer/customer_home_screen.dart" show LogoutButton;
 import "dashboard_tab.dart";
 import "drivers_tab.dart";
+import "live_map_tab.dart";
 import "rides_tab.dart";
 
 /// One admin API surface per app session.
@@ -20,15 +21,19 @@ const _warnBg = Color(0xFFFEF3C7);
 const _warnFg = Color(0xFFB45309);
 
 /// Task 6.2 — admin shell: ink header with the amber-M mark and ADMIN tag,
-/// pill tabs (active = ink bg white text), three live tabs. The Phase-1
-/// logout affordance stays in the header.
+/// pill tabs (active = ink bg white text), four live tabs (Task 6.3 added
+/// the live map). The Phase-1 logout affordance stays in the header.
 class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, this.tileLayer});
+
+  /// Injectable map tile layer — tests pass a stub so nothing touches
+  /// network (TrackingScreen convention).
+  final Widget? tileLayer;
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         body: SafeArea(
           child: Column(
@@ -36,9 +41,14 @@ class AdminScreen extends StatelessWidget {
             children: [
               const _Header(),
               _PillTabs(),
-              const Expanded(
+              Expanded(
                 child: TabBarView(
-                  children: [DashboardTab(), DriversTab(), RidesTab()],
+                  children: [
+                    const DashboardTab(),
+                    const DriversTab(),
+                    const RidesTab(),
+                    LiveMapTab(tileLayer: tileLayer),
+                  ],
                 ),
               ),
             ],
@@ -139,6 +149,7 @@ class _PillTabs extends StatelessWidget {
           Tab(text: "Dashboard"),
           Tab(text: "Drivers"),
           Tab(text: "Rides"),
+          Tab(text: "Live Map"),
         ],
       ),
     );

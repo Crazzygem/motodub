@@ -281,6 +281,7 @@ describe("GET /api/admin/drivers", () => {
     }
 
     // Vuthy: full shape check straight against the rows the seed wrote.
+    // Task 6.3 added vehicle + last-known-position columns for the live map.
     const vuthyUser = await User.findOne({
       where: { email: "vuthy@taxi.demo" },
     });
@@ -294,6 +295,10 @@ describe("GET /api/admin/drivers", () => {
       rating: Number(vuthyUser.rating),
       active: true,
       price_per_km: Number(vuthyRow.price_per_km),
+      car_model: vuthyRow.car_model,
+      plate: vuthyRow.plate,
+      lat: vuthyRow.lat === null ? null : Number(vuthyRow.lat),
+      lng: vuthyRow.lng === null ? null : Number(vuthyRow.lng),
       verified: false,
       online: false,
     });
@@ -309,6 +314,12 @@ describe("GET /api/admin/drivers", () => {
       online: true,
       active: true,
     });
+
+    // Task 6.3: live-map pins need numeric coordinates — the heartbeat
+    // columns ride along as numbers, never raw DECIMAL strings.
+    const daraWire = byEmail.get("dara@taxi.demo");
+    expect(typeof daraWire.lat).toBe("number");
+    expect(typeof daraWire.lng).toBe("number");
   });
 
   it("rejects a malformed id with VALIDATION_ERROR (verify)", async () => {

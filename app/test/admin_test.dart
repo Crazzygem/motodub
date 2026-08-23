@@ -509,5 +509,21 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("Vuthy"), findsOneWidget);
     });
+
+    testWidgets("Task 6.3 wires the Live Map tab into the shell",
+        (tester) async {
+      final repo = _StubAdminRepo();
+      // Tile stub so the mounted map never touches network.
+      await _pump(tester,
+          AdminScreen(tileLayer: const SizedBox.shrink()), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text("Live Map"));
+      await tester.pumpAndSettle();
+
+      // These seeded rows report no lat/lng — nobody qualifies for a pin,
+      // so the tab proves wiring via its empty state.
+      expect(find.byKey(const Key("live-map-empty")), findsOneWidget);
+    });
   });
 }

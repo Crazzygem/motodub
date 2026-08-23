@@ -30,6 +30,8 @@ class AdminStats {
 /// One row of GET /api/admin/drivers — the verification-table wire shape.
 /// Id semantics are explicit server-side (Task 6.1): [driverId] is the
 /// drivers-row PK (what /admin/drivers/:id/* address); [userId] is users.id.
+/// Task 6.3 adds vehicle identity + last heartbeat position ([lat]/[lng]
+/// are null until a driver reports one) for the live map.
 class AdminDriver {
   const AdminDriver({
     required this.driverId,
@@ -42,6 +44,10 @@ class AdminDriver {
     required this.verified,
     required this.online,
     this.phone,
+    this.carModel,
+    this.plate,
+    this.lat,
+    this.lng,
   });
 
   final int driverId;
@@ -54,6 +60,10 @@ class AdminDriver {
   final double pricePerKm; // asking rate — display-only (§8)
   final bool verified;
   final bool online;
+  final String? carModel;
+  final String? plate;
+  final double? lat;
+  final double? lng;
 
   static AdminDriver fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -68,6 +78,10 @@ class AdminDriver {
       pricePerKm: _asDoubleOrNull(map["price_per_km"]) ?? 0,
       verified: (map["verified"] as bool?) ?? false,
       online: (map["online"] as bool?) ?? false,
+      carModel: map["car_model"] as String?,
+      plate: map["plate"] as String?,
+      lat: _asDoubleOrNull(map["lat"]),
+      lng: _asDoubleOrNull(map["lng"]),
     );
   }
 }
