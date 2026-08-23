@@ -118,6 +118,7 @@ class _Content extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (rows.isEmpty) return const _EmptyView();
     final bannerError = ref.watch(
       driversProvider.select((s) => s.drivers == null ? s.error : null),
     );
@@ -327,6 +328,38 @@ class _Pill extends StatelessWidget {
             .labelSmall
             ?.copyWith(color: fg, fontWeight: FontWeight.w700),
       ),
+    );
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.55,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("🏍️", style: TextStyle(fontSize: 52)),
+              const SizedBox(height: 12),
+              Text("No drivers yet", style: theme.textTheme.titleMedium),
+              const SizedBox(height: 6),
+              Text(
+                "Driver profiles will show up here once they sign up.",
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

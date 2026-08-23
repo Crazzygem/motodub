@@ -33,11 +33,18 @@ class DriverCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28), // §4 deck cards
           color: AppColors.ink,
+          // Task 7.2 shadow refinement: a tight contact layer under the
+          // §4 elevation keeps the card grounded while it moves.
           boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: .08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
             BoxShadow(
               color: AppColors.ink.withValues(alpha: .18),
               blurRadius: 40,
-              offset: const Offset(0, 18),
+              offset: const Offset(0, 18), // §4 card elevation
             ),
           ],
         ),

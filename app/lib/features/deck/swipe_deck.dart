@@ -100,6 +100,16 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
   /// `rotate(dx/16deg)` from DESIGN.md §6.
   static double _angleForDx(double dx) => dx / 16 * math.pi / 180;
 
+  /// Task 7.2 parallax peek — the two peek cards lean slightly opposite to
+  /// the drag, deeper cards more. Driven by the visual offset so release
+  /// animations carry them home; clamped so it stays a whisper.
+  double _peekParallax(int depth) {
+    const factors = [0.05, 0.09];
+    const maxShifts = [6.0, 11.0];
+    final shift = -_visualOffset.dx * factors[depth - 1];
+    return shift.clamp(-maxShifts[depth - 1], maxShifts[depth - 1]);
+  }
+
   bool get _busy => _anim.isAnimating;
 
   void _onPanUpdate(DragUpdateDetails details) {
@@ -183,6 +193,7 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
                       driver: cards[depth],
                       scale: _peekScale[depth - 1],
                       translateY: _peekTranslateY[depth - 1],
+                      parallaxX: _peekParallax(depth),
                     ),
                   _TopCard(
                     key: ValueKey(cards.first.id),
@@ -321,16 +332,18 @@ class _PeekCard extends StatelessWidget {
     required this.driver,
     required this.scale,
     required this.translateY,
+    required this.parallaxX,
   });
 
   final Driver driver;
   final double scale;
   final double translateY;
+  final double parallaxX;
 
   @override
   Widget build(BuildContext context) {
     return Transform.translate(
-      offset: Offset(0, translateY),
+      offset: Offset(parallaxX, translateY),
       child: Transform.scale(
         scale: scale,
         child: DriverCard(driver: driver),

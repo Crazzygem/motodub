@@ -170,7 +170,7 @@ class _Content extends StatelessWidget {
 // --- map -------------------------------------------------------------------------
 
 /// Same conventions as the booking-sheet panel (§7): light OSM tiles,
-/// pickup pin book-green, dropoff pin red, dashed amber route. The extra
+/// pickup pin book-green, dropoff pin amber, dashed amber route. The extra
 /// occupant here is the LIVE driver marker fed by driver:location.
 class _MapPanel extends StatelessWidget {
   const _MapPanel({
@@ -224,7 +224,7 @@ class _MapPanel extends StatelessWidget {
               width: 34,
               height: 34,
               child: const Icon(Icons.location_on_rounded,
-                  key: Key("dropoff-pin"), color: AppColors.passRed, size: 32,
+                  key: Key("dropoff-pin"), color: AppColors.amber, size: 32,
                   shadows: [Shadow(color: Colors.black26, blurRadius: 6)]),
             ),
             if (driverPosition != null)

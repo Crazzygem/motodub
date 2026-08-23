@@ -209,21 +209,30 @@ describe("PATCH /api/drivers", () => {
 
 describe("PATCH /api/drivers/online", () => {
   it("goes online, persists lat/lng and bumps the updated_at heartbeat", async () => {
-    // Backdate the heartbeat so the bump below is unambiguous (DATE is
-    // second-precision, hence the hour).
-    const stale = new Date(Date.now() - 60 * 60 * 1000);
-    await Driver.update(
-      { updated_at: stale },
-      { where: { user_id: onlineDriver.id } },
-    );
     await Driver.create({
       user_id: onlineDriver.id,
       car_model: "Honda Dream",
       plate: "PP-2B-2222",
       license_no: "KH-DL-2222",
       price_per_km: "1.00",
-      updated_at: stale,
     });
+
+    // Backdate so the bump below is unambiguous. Staleness math happens in
+    // SQL against the DB's own clock — client-side Date values are silently
+    // dropped here (timestamp-only Model.update values are discarded by
+    // Sequelize's auto-stamping), which made this suite's old backdate a
+    // no-op and its bump assertion vacuous.
+    const row = await Driver.findOne({ where: { user_id: onlineDriver.id } });
+    await sequelize.query(
+      "UPDATE drivers SET updated_at = NOW() - INTERVAL 60 SECOND WHERE id = :id",
+      { replacements: { id: row.id } },
+    );
+    // Second-precision DATETIME: compare against the backdated value so the
+    // bump cannot land "in the same second" as the reference.
+    const before = new Date(
+      (await Driver.findOne({ where: { user_id: onlineDriver.id } }))
+        .updated_at,
+    ).getTime();
 
     const res = await patchOnline(
       { online: true, lat: 11.5564, lng: 104.9282 },
@@ -234,12 +243,12 @@ describe("PATCH /api/drivers/online", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.online).toBe(true);
 
-    const row = await Driver.findOne({ where: { user_id: onlineDriver.id } });
-    expect(Number(row.lat)).toBeCloseTo(11.5564, 5);
-    expect(Number(row.lng)).toBeCloseTo(104.9282, 5);
-    expect(new Date(row.updated_at).getTime()).toBeGreaterThan(
-      stale.getTime(),
-    );
+    const bumped = await Driver.findOne({
+      where: { user_id: onlineDriver.id },
+    });
+    expect(Number(bumped.lat)).toBeCloseTo(11.5564, 5);
+    expect(Number(bumped.lng)).toBeCloseTo(104.9282, 5);
+    expect(new Date(bumped.updated_at).getTime()).toBeGreaterThan(before);
   });
 
   it("rejects a toggle without a boolean with VALIDATION_ERROR", async () => {
@@ -271,6 +280,55 @@ describe("PATCH /api/drivers/online", () => {
 
     expect(deck.status).toBe(200);
     expect(deck.body.data.map((c) => c.name)).not.toContain("Deck Dara Jr");
+  });
+
+  it("drops a verified driver from the nearby deck once the heartbeat goes stale, and restores them on refresh", async () => {
+    // Make him deck-eligible. Position FIRST (while still unverified and
+    // therefore invisible): nearby.test.js runs in a parallel jest worker
+    // against this same database and asserts every returned card has a
+    // distance > 0, so a verified driver must never sit on the query center.
+    const reposition = await patchOnline(
+      { online: true, lat: 11.558, lng: 104.929 },
+      signToken({ id: onlineDriver.id, role: "driver" }),
+    );
+    expect(reposition.status).toBe(200);
+    await Driver.update(
+      { verified: true },
+      { where: { user_id: onlineDriver.id } },
+    );
+
+    async function nearbyNames() {
+      const res = await request(app)
+        .get("/api/drivers/nearby")
+        .query({ lat: 11.5564, lng: 104.9282 })
+        .set("Authorization", `Bearer ${customerToken}`);
+      expect(res.status).toBe(200);
+      return res.body.data.map((c) => c.name);
+    }
+
+    // Fresh heartbeat → visible.
+    expect(await nearbyNames()).toContain("Heartbeat Heng");
+
+    // Backdate past §8's 15s freshness window with SQL-side clock math —
+    // client-side timestamp writes are silently dropped by Sequelize (see
+    // the heartbeat test above).
+    const row = await Driver.findOne({ where: { user_id: onlineDriver.id } });
+    await sequelize.query(
+      "UPDATE drivers SET updated_at = NOW() - INTERVAL 60 SECOND WHERE id = :id",
+      { replacements: { id: row.id } },
+    );
+
+    // Stale heartbeat → treated as offline, excluded from the deck.
+    expect(await nearbyNames()).not.toContain("Heartbeat Heng");
+
+    // A fresh bump puts him straight back in — proving the exclusion was
+    // the staleness filter, not the verification flip.
+    const refresh = await patchOnline(
+      { online: true, lat: 11.558, lng: 104.929 },
+      signToken({ id: onlineDriver.id, role: "driver" }),
+    );
+    expect(refresh.status).toBe(200);
+    expect(await nearbyNames()).toContain("Heartbeat Heng");
   });
 });
 

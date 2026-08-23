@@ -371,7 +371,7 @@ class _MapPanel extends ConsumerWidget {
                 alignment: Alignment.topCenter,
                 child: _DraggablePin(
                   point: form.dropoff,
-                  color: AppColors.passRed,
+                  color: AppColors.amber, // §7 pins: dropoff = amber
                   icon: Icons.location_on_rounded,
                   onMoved: (point) =>
                       notifier.movePin(ActivePin.dropoff, point),

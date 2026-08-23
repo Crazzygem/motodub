@@ -38,7 +38,10 @@ class DriverHomeScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(strokeWidth: 3),
           ),
-          error: (error, _) => _BootError(message: _messageFor(error)),
+          error: (error, _) => _BootError(
+            message: _messageFor(error),
+            onRetry: () => ref.read(driverProvider.notifier).refresh(),
+          ),
           data: (state) => RefreshIndicator(
             onRefresh: () async =>
                 ref.read(driverProvider.notifier).refresh(),
@@ -401,9 +404,10 @@ class _ErrorBanner extends StatelessWidget {
 }
 
 class _BootError extends StatelessWidget {
-  const _BootError({required this.message});
+  const _BootError({required this.message, required this.onRetry});
 
   final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +422,16 @@ class _BootError extends StatelessWidget {
             const SizedBox(height: 8),
             Text(message, textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.amber,
+                foregroundColor: AppColors.ink, // amber always carries ink
+              ),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text("Try again"),
+            ),
           ],
         ),
       ),
