@@ -9,7 +9,8 @@ import "../deck/swipe_deck.dart";
 
 /// Customer landing page — the swipe deck IS the home (Task 3.5 wiring
 /// bridge). Right-swipe hands the driver to the booking confirm sheet.
-/// The slim top bar only carries the history entry point (Task 5.2).
+/// The slim top bar carries the history entry point (Task 5.2) and the
+/// shared logout pill.
 /// In mock-driver mode (USE_MOCK_DRIVERS) the sheet is skipped: a mock
 /// driverId would 404 on the real API, so the card just flies off.
 class CustomerHomeScreen extends ConsumerWidget {
@@ -22,13 +23,16 @@ class CustomerHomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                onPressed: () => context.push("/history"),
-                icon: const Icon(Icons.history_rounded),
-                tooltip: "Your rides",
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => context.push("/history"),
+                  icon: const Icon(Icons.history_rounded),
+                  tooltip: "Your rides",
+                ),
+                const LogoutButton(),
+              ],
             ),
             Expanded(
               child: SwipeDeck(
