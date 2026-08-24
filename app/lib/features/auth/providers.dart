@@ -2,6 +2,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/api_client.dart";
 import "../../core/api/auth_repo.dart";
+import "../../core/api/user_repo.dart";
 import "../../core/auth/auth_state.dart" show authProvider;
 
 /// One client per app; every request re-reads the session token so
@@ -14,4 +15,8 @@ final apiClientProvider = Provider<ApiClient>(
 
 final authRepoProvider = Provider<AuthRepo>(
   (ref) => AuthRepo(ref.watch(apiClientProvider)),
+);
+
+final userRepoProvider = Provider<UserRepo>(
+  (ref) => UserRepo(ref.watch(apiClientProvider)),
 );

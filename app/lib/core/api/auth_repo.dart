@@ -7,16 +7,26 @@ class AuthSession {
   final String role;
   final String? name;
   final String? email;
+  final String? phone;
+  final String? photo;
 
   const AuthSession({
     required this.token,
     required this.role,
     this.name,
     this.email,
+    this.phone,
+    this.photo,
   });
 
-  AuthState get state =>
-      AuthState(token: token, role: role, name: name, email: email);
+  AuthState get state => AuthState(
+        token: token,
+        role: role,
+        name: name,
+        email: email,
+        phone: phone,
+        photo: photo,
+      );
 
   static AuthSession fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -26,6 +36,8 @@ class AuthSession {
       role: user["role"] as String,
       name: user["name"] as String?,
       email: user["email"] as String?,
+      phone: user["phone"] as String?,
+      photo: user["photo"] as String?,
     );
   }
 }

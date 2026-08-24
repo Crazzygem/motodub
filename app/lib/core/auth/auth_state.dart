@@ -2,6 +2,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 import "../../features/auth/providers.dart";
+import "../models/user.dart";
 
 /// Immutable auth snapshot persisted across restarts.
 class AuthState {
@@ -16,7 +17,19 @@ class AuthState {
   /// for sessions persisted before this field existed.
   final String? email;
 
-  const AuthState({this.token, this.role, this.name, this.email});
+  /// Own phone + avatar URL (Task B profile customization) — carried by the
+  /// session payload and reconciled after PATCH /users/me / avatar uploads.
+  final String? phone;
+  final String? photo;
+
+  const AuthState({
+    this.token,
+    this.role,
+    this.name,
+    this.email,
+    this.phone,
+    this.photo,
+  });
 
   bool get isAuthenticated => token != null && role != null;
 }
@@ -26,6 +39,8 @@ class TokenStore {
   static const _roleKey = "auth.role";
   static const _nameKey = "auth.name";
   static const _emailKey = "auth.email";
+  static const _phoneKey = "auth.phone";
+  static const _photoKey = "auth.photo";
 
   Future<AuthState?> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,6 +52,8 @@ class TokenStore {
       role: role,
       name: prefs.getString(_nameKey),
       email: prefs.getString(_emailKey),
+      phone: prefs.getString(_phoneKey),
+      photo: prefs.getString(_photoKey),
     );
   }
 
@@ -46,14 +63,15 @@ class TokenStore {
     await prefs.setString(_roleKey, state.role!);
     if (state.name != null) await prefs.setString(_nameKey, state.name!);
     if (state.email != null) await prefs.setString(_emailKey, state.email!);
+    if (state.phone != null) await prefs.setString(_phoneKey, state.phone!);
+    if (state.photo != null) await prefs.setString(_photoKey, state.photo!);
   }
 
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_roleKey);
-    await prefs.remove(_nameKey);
-    await prefs.remove(_emailKey);
+    for (final key in [_tokenKey, _roleKey, _nameKey, _emailKey, _phoneKey, _photoKey]) {
+      await prefs.remove(key);
+    }
   }
 }
 
@@ -107,6 +125,51 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> logout() async {
     await TokenStore().clear();
     state = const AsyncData(AuthState());
+  }
+
+  /// Server-truth reconcile (Task B): merge a fresh `User` payload into the
+  /// session and persist it.
+  Future<void> adoptUser(User user) async {
+    final current = state.valueOrNull ?? const AuthState();
+    final merged = AuthState(
+      token: current.token,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      photo: user.photo,
+    );
+    await TokenStore().save(merged);
+    state = AsyncData(merged);
+  }
+
+  /// PATCH /users/me: optimistic session update first, revert + friendly
+  /// message when the server refuses; adopt its truth when it accepts.
+  Future<String?> updateProfile({
+    required String name,
+    required String phone,
+  }) async {
+    final current = state.valueOrNull ?? const AuthState();
+    final optimistic = AuthState(
+      token: current.token,
+      role: current.role,
+      name: name,
+      email: current.email,
+      phone: phone,
+      photo: current.photo,
+    );
+    state = AsyncData(optimistic);
+
+    final result = await ref.read(userRepoProvider).patchMe(
+          name: name,
+          phone: phone,
+        );
+    if (!result.isOk) {
+      state = AsyncData(current); // roll the optimistic write back
+      return result.message;
+    }
+    await adoptUser(result.data!);
+    return null;
   }
 }
 

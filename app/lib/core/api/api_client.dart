@@ -133,4 +133,13 @@ class ApiClient {
   Future<ApiResult<T>> patch<T>(String path,
           {Object? body, T Function(dynamic)? parse}) =>
       _send<T>("PATCH", path, body: body, parse: parse);
+
+  /// POST a multipart/form-data [body] (avatar uploads). Rides the same
+  /// interceptor stack — bearer header + §4 envelope unwrap — as every verb.
+  Future<ApiResult<T>> postMultipart<T>(
+    String path, {
+    required FormData body,
+    T Function(dynamic)? parse,
+  }) =>
+      _send<T>("POST", path, body: body, parse: parse);
 }
