@@ -2,7 +2,9 @@ import bcrypt from "bcryptjs";
 import { User } from "../models/user.js";
 import { signToken } from "../utils/jwt.js";
 
-function publicUser(user) {
+// Shared with users.service (PATCH /me, avatar) so every response that
+// carries a user keeps the register/login shape.
+export function publicUser(user) {
   const { id, role, name, phone, email, photo, rating, active } = user;
   return { id, role, name, phone, email, photo, rating, active };
 }

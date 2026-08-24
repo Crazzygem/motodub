@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# User-uploaded avatars — never commit user files
+uploads/

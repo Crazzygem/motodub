@@ -7,12 +7,18 @@ import usersRoutes from "./routes/users.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { authenticate } from "./middlewares/authenticate.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { ensureUploadsDir, UPLOADS_DIR } from "./config/uploads.js";
 
 export function createApp() {
   const app = express();
 
+  ensureUploadsDir(); // avatar storage target exists before any upload
+
   app.use(cors());
   app.use(express.json());
+
+  // Avatars are public read-only assets; served outside the /api auth gate.
+  app.use("/uploads", express.static(UPLOADS_DIR));
 
   app.use("/api", authRoutes);
   // Public auth routes live above; everything else under /api requires a
