@@ -502,6 +502,25 @@ void main() {
   });
 
   group("AdminScreen", () {
+    testWidgets("the four tabs live in the bottom navigation bar; the header "
+        "keeps ADMIN and logout", (tester) async {
+      final repo = _StubAdminRepo()
+        ..rideRows = [_ride(id: 101, status: "completed", driverName: "Dara")];
+      await _pump(tester, const AdminScreen(),
+          repo: repo, rides: _StubRideRepo(), socket: _FakeSocket());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(find.text("ADMIN"), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, "Log out"), findsOneWidget);
+
+      // Switching through the bar reaches every tab.
+      await tester.tap(find.text("Rides"));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("admin-ride-badge-101")), findsOneWidget);
+    });
+
     testWidgets("keeps the logout affordance and switches tabs",
         (tester) async {
       final repo = _StubAdminRepo();

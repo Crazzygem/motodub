@@ -12,7 +12,11 @@ class AuthState {
   /// customer greeting reads its first word.
   final String? name;
 
-  const AuthState({this.token, this.role, this.name});
+  /// Session email from the same payload — shown on the Account tab. Null
+  /// for sessions persisted before this field existed.
+  final String? email;
+
+  const AuthState({this.token, this.role, this.name, this.email});
 
   bool get isAuthenticated => token != null && role != null;
 }
@@ -21,13 +25,19 @@ class TokenStore {
   static const _tokenKey = "auth.token";
   static const _roleKey = "auth.role";
   static const _nameKey = "auth.name";
+  static const _emailKey = "auth.email";
 
   Future<AuthState?> load() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
     final role = prefs.getString(_roleKey);
     if (token == null || role == null) return null;
-    return AuthState(token: token, role: role, name: prefs.getString(_nameKey));
+    return AuthState(
+      token: token,
+      role: role,
+      name: prefs.getString(_nameKey),
+      email: prefs.getString(_emailKey),
+    );
   }
 
   Future<void> save(AuthState state) async {
@@ -35,6 +45,7 @@ class TokenStore {
     await prefs.setString(_tokenKey, state.token!);
     await prefs.setString(_roleKey, state.role!);
     if (state.name != null) await prefs.setString(_nameKey, state.name!);
+    if (state.email != null) await prefs.setString(_emailKey, state.email!);
   }
 
   Future<void> clear() async {
@@ -42,6 +53,7 @@ class TokenStore {
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_nameKey);
+    await prefs.remove(_emailKey);
   }
 }
 

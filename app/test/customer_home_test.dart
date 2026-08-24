@@ -1,9 +1,15 @@
+import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:motodub/core/api/api_client.dart";
+import "package:motodub/core/api/ride_repo.dart";
 import "package:motodub/core/auth/auth_state.dart";
 import "package:motodub/core/models/driver.dart";
+import "package:motodub/core/models/ride.dart";
 import "package:motodub/core/router/app_router.dart";
+import "package:motodub/features/booking/booking_provider.dart"
+    show rideRepoProvider;
 import "package:motodub/features/customer/customer_home_screen.dart";
 import "package:motodub/features/deck/deck_provider.dart";
 import "package:motodub/features/deck/swipe_deck.dart";
@@ -55,9 +61,27 @@ const _session = AuthState(
   token: "jwt",
   role: "customer",
   name: "Dara Sok",
+  email: "dara@taxi.demo",
 );
 
-Future<void> _pump(WidgetTester tester) async {
+/// Canned rides/mine — the History tab fetches through this seam.
+class _StubRideRepo extends RideRepo {
+  _StubRideRepo() : super(ApiClient(dio: Dio()));
+
+  ApiResult<List<Ride>>? mineResult;
+  int mineCalls = 0;
+
+  @override
+  Future<ApiResult<List<Ride>>> mine() async {
+    mineCalls++;
+    return mineResult ?? const ApiResult.ok([]);
+  }
+}
+
+Future<void> _pump(
+  WidgetTester tester, {
+  _StubRideRepo? rideRepo,
+}) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3.0;
   addTearDown(tester.view.reset);
@@ -67,6 +91,7 @@ Future<void> _pump(WidgetTester tester) async {
       overrides: [
         deckProvider.overrideWith(() => _FakeDeck([_dara])),
         authProvider.overrideWith(() => _SpyAuth(_session)),
+        rideRepoProvider.overrideWithValue(rideRepo ?? _StubRideRepo()),
       ],
       child: const MaterialApp(home: CustomerHomeScreen()),
     ),
@@ -115,7 +140,53 @@ void main() {
     expect(greetingFor(DateTime(2026, 8, 23, 9), "  "), "Good morning");
   });
 
-  testWidgets("logout dispatches the auth logout and lands on the login "
+  testWidgets("bottom navigation offers Deck / History / Account and drops "
+      "the old top-right cluster", (tester) async {
+    await _pump(tester);
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.descendant(
+        of: find.byType(NavigationBar), matching: find.text("Deck")),
+        findsOneWidget);
+    expect(find.descendant(
+        of: find.byType(NavigationBar), matching: find.text("History")),
+        findsOneWidget);
+    expect(find.descendant(
+        of: find.byType(NavigationBar), matching: find.text("Account")),
+        findsOneWidget);
+
+    // No more history icon or logout pill next to the greeting.
+    expect(find.text("Log out"), findsNothing);
+    expect(find.byTooltip("Your rides"), findsNothing);
+  });
+
+  testWidgets("the History destination swaps in the rides screen", (tester) async {
+    final rideRepo = _StubRideRepo()..mineResult = const ApiResult.ok([]);
+    await _pump(tester, rideRepo: rideRepo);
+
+    await tester.tap(find.text("History"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Your rides"), findsOneWidget);
+    expect(rideRepo.mineCalls, 1);
+    expect(find.text("No rides yet"), findsOneWidget);
+  });
+
+  testWidgets("the Account destination shows the session identity and the "
+      "logout button", (tester) async {
+    await _pump(tester);
+
+    await tester.tap(find.text("Account"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Dara Sok"), findsOneWidget);
+    expect(find.text("dara@taxi.demo"), findsOneWidget);
+    expect(find.text("CUSTOMER"), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, "Log out"), findsOneWidget);
+  });
+
+  testWidgets("logout moves through the Account tab and lands on the login "
       "screen through the router redirect", (tester) async {
     final auth = _SpyAuth(_session);
     final container = ProviderContainer(overrides: [
@@ -138,6 +209,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SwipeDeck), findsOneWidget); // session → /customer
+
+    await tester.tap(find.text("Account"));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, "Log out"), findsOneWidget);
 
     await tester.tap(find.text("Log out"));
     await tester.pumpAndSettle();

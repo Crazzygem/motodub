@@ -8,17 +8,60 @@ import "../../core/api/ride_repo.dart";
 import "../../core/models/driver.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
-import "../customer/customer_home_screen.dart";
-import "../rides/history_screen.dart" show historyStatusColor, historyStatusLabel;
+import "../account/account_screen.dart";
+import "../rides/history_screen.dart"
+    show HistoryScreen, historyStatusColor, historyStatusLabel;
 import "driver_provider.dart";
 import "driver_summary.dart";
 import "request_card.dart";
 import "ride_controls.dart";
 
-/// The driver's working screen (Task 4.6): presence toggle + heartbeats,
-/// vehicle card / first-time setup, incoming request card, ride controls.
-class DriverHomeScreen extends ConsumerWidget {
+/// The driver's working shell (Task 4.6, restructured to bottom nav):
+/// Home (presence + vehicle + requests + summary), History and Account
+/// behind a Material 3 [NavigationBar].
+class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
+
+  @override
+  ConsumerState<DriverHomeScreen> createState() => _DriverHomeScreenState();
+}
+
+class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Conditional swap — only the active tab is mounted.
+      body: switch (_tab) {
+        1 => const HistoryScreen(),
+        2 => const AccountScreen(),
+        _ => const _DriverHomeBody(),
+      },
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (index) => setState(() => _tab = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_rounded),
+            label: "Home",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_rounded),
+            label: "History",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_rounded),
+            label: "Account",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DriverHomeBody extends ConsumerWidget {
+  const _DriverHomeBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,87 +78,73 @@ class DriverHomeScreen extends ConsumerWidget {
       context.push("/rating/$completed");
     });
 
-    return Scaffold(
-      body: SafeArea(
-        child: home.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-          error: (error, _) => _BootError(
-            message: _messageFor(error),
-            onRetry: () => ref.read(driverProvider.notifier).refresh(),
-          ),
-          data: (state) => RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(driverSummaryProvider);
-              ref.read(driverProvider.notifier).refresh();
-            },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text("MotoDub Driver",
-                          style: Theme.of(context).textTheme.titleLarge),
-                    ),
-                    IconButton(
-                      onPressed: () => context.push("/history"),
-                      icon: const Icon(Icons.history_rounded),
-                      tooltip: "Your rides",
-                    ),
-                    const LogoutButton(),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (state.vehicle != null) ...[
-                  _StatusCard(state: state),
-                  const SizedBox(height: 14),
-                ],
-                if (state.error != null) ...[
-                  _ErrorBanner(message: state.error!),
-                  const SizedBox(height: 14),
-                ],
-                if (state.incoming != null) ...[
-                  const SizedBox(height: 14),
-                  RequestCard(
-                    request: state.incoming!,
-                    onAccept: () =>
-                        ref.read(driverProvider.notifier).accept(),
-                    onDecline: () =>
-                        ref.read(driverProvider.notifier).decline(),
-                  ),
-                ],
-                if (state.active != null) ...[
-                  const SizedBox(height: 14),
-                  RideControls(
-                    ride: state.active!,
-                    onStart: () => ref
-                        .read(driverProvider.notifier)
-                        .advance(RideAction.start),
-                    onStartRide: () => ref
-                        .read(driverProvider.notifier)
-                        .advance(RideAction.startRide),
-                    onComplete: () => ref
-                        .read(driverProvider.notifier)
-                        .advance(RideAction.complete),
-                  ),
-                ],
-                state.vehicle == null
-                    ? _VehicleSetupForm(submit: (fields) => ref
-                        .read(driverProvider.notifier)
-                        .submitVehicle(
-                          carModel: fields.carModel,
-                          plate: fields.plate,
-                          licenseNo: fields.licenseNo,
-                          pricePerKm: fields.pricePerKm,
-                        ))
-                    : _VehicleCard(vehicle: state.vehicle!),
+    return SafeArea(
+      child: home.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(strokeWidth: 3),
+        ),
+        error: (error, _) => _BootError(
+          message: _messageFor(error),
+          onRetry: () => ref.read(driverProvider.notifier).refresh(),
+        ),
+        data: (state) => RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(driverSummaryProvider);
+            ref.read(driverProvider.notifier).refresh();
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              Text("MotoDub Driver",
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              if (state.vehicle != null) ...[
+                _StatusCard(state: state),
                 const SizedBox(height: 14),
-                const _EarningsAndActivity(),
               ],
-            ),
+              if (state.error != null) ...[
+                _ErrorBanner(message: state.error!),
+                const SizedBox(height: 14),
+              ],
+              if (state.incoming != null) ...[
+                const SizedBox(height: 14),
+                RequestCard(
+                  request: state.incoming!,
+                  onAccept: () =>
+                      ref.read(driverProvider.notifier).accept(),
+                  onDecline: () =>
+                      ref.read(driverProvider.notifier).decline(),
+                ),
+              ],
+              if (state.active != null) ...[
+                const SizedBox(height: 14),
+                RideControls(
+                  ride: state.active!,
+                  onStart: () => ref
+                      .read(driverProvider.notifier)
+                      .advance(RideAction.start),
+                  onStartRide: () => ref
+                      .read(driverProvider.notifier)
+                      .advance(RideAction.startRide),
+                  onComplete: () => ref
+                      .read(driverProvider.notifier)
+                      .advance(RideAction.complete),
+                ),
+              ],
+              state.vehicle == null
+                  ? _VehicleSetupForm(submit: (fields) => ref
+                      .read(driverProvider.notifier)
+                      .submitVehicle(
+                        carModel: fields.carModel,
+                        plate: fields.plate,
+                        licenseNo: fields.licenseNo,
+                        pricePerKm: fields.pricePerKm,
+                      ))
+                  : _VehicleCard(vehicle: state.vehicle!),
+              const SizedBox(height: 14),
+              const _EarningsAndActivity(),
+            ],
           ),
         ),
       ),

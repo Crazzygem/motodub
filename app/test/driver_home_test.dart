@@ -660,6 +660,34 @@ void main() {
     expect(find.text("Start ride"), findsOneWidget);
   });
 
+  testWidgets("bottom navigation offers Home / History / Account and the "
+      "header loses its logout cluster", (tester) async {
+    final driverRepo =
+        _StubDriverRepo(meResult: const ApiResult.ok(_vehicle));
+    await _pumpHarness(
+      tester,
+      driverRepo: driverRepo,
+      rideRepo: _StubRideRepo(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.text("Log out"), findsNothing); // moved off the header
+    expect(find.byTooltip("Your rides"), findsNothing);
+
+    // History destination swaps in the rides screen (empty repo → empty).
+    await tester.tap(find.text("History"));
+    await tester.pumpAndSettle();
+    expect(find.text("Your rides"), findsOneWidget);
+    expect(find.text("No rides yet"), findsOneWidget);
+
+    // Back to Home — presence card returns.
+    await tester.tap(find.text("Home"));
+    await tester.pumpAndSettle();
+    expect(find.text("You're offline"), findsOneWidget);
+  });
+
   testWidgets("logout dispatches the auth logout and lands on the login "
       "screen through the router redirect", (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -691,6 +719,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Switch), findsOneWidget); // session → /driver
+
+    // Logout lives on the Account tab now.
+    await tester.tap(find.text("Account"));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, "Log out"), findsOneWidget);
 
     await tester.tap(find.text("Log out"));
     await tester.pumpAndSettle();

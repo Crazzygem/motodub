@@ -1,12 +1,13 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:go_router/go_router.dart";
 
 import "../../core/auth/auth_state.dart";
 import "../../core/theme/app_theme.dart";
+import "../account/account_screen.dart";
 import "../booking/booking_sheet.dart";
 import "../deck/deck_provider.dart";
 import "../deck/swipe_deck.dart";
+import "../rides/history_screen.dart";
 
 /// Time-of-day greeting — "Good morning/afternoon/evening, `<first name>`".
 /// First name comes from the session payload; [now] is injectable so tests
@@ -21,14 +22,57 @@ String greetingFor(DateTime now, String? name) {
   return (first == null || first.isEmpty) ? "Good $part" : "Good $part, $first";
 }
 
-/// Customer landing page — the swipe deck IS the home (Task 3.5 wiring
-/// bridge). Right-swipe hands the driver to the booking confirm sheet.
-/// The slim top bar carries the history entry point (Task 5.2) and the
-/// shared logout pill.
-/// In mock-driver mode (USE_MOCK_DRIVERS) the sheet is skipped: a mock
-/// driverId would 404 on the real API, so the card just flies off.
-class CustomerHomeScreen extends ConsumerWidget {
+/// Customer landing shell — the swipe deck IS the home (Task 3.5 wiring
+/// bridge), and Deck / History / Account live behind a Material 3 bottom
+/// [NavigationBar] (nav restructure). Right-swipe hands the driver to the
+/// booking confirm sheet. In mock-driver mode (USE_MOCK_DRIVERS) the sheet
+/// is skipped: a mock driverId would 404 on the real API, so the card just
+/// flies off.
+class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
+
+  @override
+  ConsumerState<CustomerHomeScreen> createState() =>
+      _CustomerHomeScreenState();
+}
+
+class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Conditional swap, not IndexedStack — only the active tab is mounted,
+      // so finders and fetches never see hidden tabs.
+      body: switch (_tab) {
+        1 => const HistoryScreen(),
+        2 => const AccountScreen(),
+        _ => const _DeckTab(),
+      },
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (index) => setState(() => _tab = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.style_rounded),
+            label: "Deck",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_rounded),
+            label: "History",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_rounded),
+            label: "Account",
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeckTab extends ConsumerWidget {
+  const _DeckTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,67 +80,53 @@ class CustomerHomeScreen extends ConsumerWidget {
     final name = ref.watch(authProvider).valueOrNull?.name;
     final greeting = greetingFor(DateTime.now(), name);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(greeting,
-                      style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 2),
-                  Text("Find your ride below",
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  onPressed: () => context.push("/history"),
-                  icon: const Icon(Icons.history_rounded),
-                  tooltip: "Your rides",
-                ),
-                const LogoutButton(),
+                Text(greeting, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 2),
+                Text("Find your ride below",
+                    style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              // Wrap, not Row — on narrow screens the chips flow onto a
-              // second line instead of overflowing the deck header.
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: const [
-                  _HintChip(
-                    icon: Icons.swipe_right_rounded,
-                    label: "Swipe right to book",
-                    tint: AppColors.bookGreen,
-                  ),
-                  _HintChip(
-                    icon: Icons.swipe_left_rounded,
-                    label: "Left to pass",
-                    tint: AppColors.passRed,
-                  ),
-                ],
-              ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            // Wrap, not Row — on narrow screens the chips flow onto a
+            // second line instead of overflowing the deck header.
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const [
+                _HintChip(
+                  icon: Icons.swipe_right_rounded,
+                  label: "Swipe right to book",
+                  tint: AppColors.bookGreen,
+                ),
+                _HintChip(
+                  icon: Icons.swipe_left_rounded,
+                  label: "Left to pass",
+                  tint: AppColors.passRed,
+                ),
+              ],
             ),
-            Expanded(
-              child: SwipeDeck(
-                onSwipedRight: (driver) {
-                  if (mockMode) return; // mock ids never exist on the API
-                  showBookingSheet(context, driver);
-                },
-              ),
+          ),
+          Expanded(
+            child: SwipeDeck(
+              onSwipedRight: (driver) {
+                if (mockMode) return; // mock ids never exist on the API
+                showBookingSheet(context, driver);
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -136,19 +166,6 @@ class _HintChip extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Shared logout pill used by every role shell.
-class LogoutButton extends ConsumerWidget {
-  const LogoutButton({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FilledButton.tonal(
-      onPressed: () => ref.read(authProvider.notifier).logout(),
-      child: const Text("Log out"),
     );
   }
 }

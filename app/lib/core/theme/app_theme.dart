@@ -37,6 +37,34 @@ ThemeData buildAppTheme() {
       outline: AppColors.line,
     ),
     scaffoldBackgroundColor: AppColors.bg,
+    // Shared M3 bottom-nav chrome for every role shell: amber selection
+    // (indicator wash + amberDeep icon/label, §2 "active nav" token).
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: AppColors.amber.withValues(alpha: .16),
+      elevation: 0,
+      height: 68,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: 22,
+          color: states.contains(WidgetState.selected)
+              ? AppColors.amberDeep
+              : AppColors.muted,
+        ),
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 12,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w700
+              : FontWeight.w500,
+          color: states.contains(WidgetState.selected)
+              ? AppColors.amberDeep
+              : AppColors.muted,
+        ),
+      ),
+    ),
     textTheme: jakarta.copyWith(
       // Headings: Sora (display 26 · screen title 18–20 · card name 16–17)
       displaySmall: sora.displaySmall?.copyWith(

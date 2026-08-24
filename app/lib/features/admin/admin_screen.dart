@@ -4,7 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../core/api/admin_repo.dart";
 import "../../core/theme/app_theme.dart";
 import "../auth/providers.dart" show apiClientProvider;
-import "../customer/customer_home_screen.dart" show LogoutButton;
+import "../account/account_screen.dart" show LogoutButton;
 import "dashboard_tab.dart";
 import "drivers_tab.dart";
 import "live_map_tab.dart";
@@ -21,8 +21,10 @@ const _warnBg = Color(0xFFFEF3C7);
 const _warnFg = Color(0xFFB45309);
 
 /// Task 6.2 — admin shell: ink header with the amber-M mark and ADMIN tag,
-/// pill tabs (active = ink bg white text), four live tabs (Task 6.3 added
-/// the live map). The Phase-1 logout affordance stays in the header.
+/// four live tabs (Task 6.3 added the live map) driven by a Material 3
+/// bottom [NavigationBar] (nav restructure). The Phase-1 logout affordance
+/// stays in the header — admin has no Account tab, consistent with
+/// authority apps.
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key, this.tileLayer});
 
@@ -40,7 +42,6 @@ class AdminScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const _Header(),
-              _PillTabs(),
               Expanded(
                 child: TabBarView(
                   children: [
@@ -54,6 +55,43 @@ class AdminScreen extends StatelessWidget {
             ],
           ),
         ),
+        bottomNavigationBar: _AdminNav(),
+      ),
+    );
+  }
+}
+
+/// Bridges the bottom [NavigationBar] to the shell's [TabController] —
+/// selection follows tab animations in both directions.
+class _AdminNav extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final controller = DefaultTabController.maybeOf(context);
+    if (controller == null) return const SizedBox.shrink();
+
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => NavigationBar(
+        selectedIndex: controller.index,
+        onDestinationSelected: controller.animateTo,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_rounded),
+            label: "Dashboard",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.groups_rounded),
+            label: "Drivers",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_rounded),
+            label: "Rides",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.map_rounded),
+            label: "Live Map",
+          ),
+        ],
       ),
     );
   }
@@ -125,33 +163,3 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _PillTabs extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: TabBar(
-        dividerColor: Colors.transparent,
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: AppColors.ink,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        splashBorderRadius: BorderRadius.circular(999),
-        labelColor: Colors.white,
-        unselectedLabelColor: AppColors.muted,
-        labelStyle:
-            Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13),
-        unselectedLabelStyle:
-            Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13),
-        tabs: const [
-          Tab(text: "Dashboard"),
-          Tab(text: "Drivers"),
-          Tab(text: "Rides"),
-          Tab(text: "Live Map"),
-        ],
-      ),
-    );
-  }
-}
