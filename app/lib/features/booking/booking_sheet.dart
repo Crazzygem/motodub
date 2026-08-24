@@ -5,6 +5,8 @@ import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 import "package:latlong2/latlong.dart";
 
+import "../../core/api/error_messages.dart" show localizedErrorFor;
+import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
 import "booking_provider.dart";
@@ -26,7 +28,7 @@ Future<void> showBookingSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: tokensOf(context).card,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -83,7 +85,13 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
 
     if (!mounted) return;
     if (!result.isOk) {
-      booking.endSubmit(error: result.message);
+      booking.endSubmit(
+        error: localizedErrorFor(
+          l10nOf(context),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
     Navigator.of(context).pop(); // close the sheet…
@@ -93,6 +101,7 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
   @override
   Widget build(BuildContext context) {
     final form = ref.watch(bookingProvider);
+    final l10n = context.l10n;
     final jakarta = Theme.of(context).textTheme;
 
     return SingleChildScrollView(
@@ -108,7 +117,7 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _dragHandle(),
+                _dragHandle(context),
                 const SizedBox(height: 8),
                 _MiniHeader(driver: widget.driver),
                 const SizedBox(height: 14),
@@ -120,16 +129,16 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                 ),
                 const SizedBox(height: 12),
                 SegmentedButton<ActivePin>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: ActivePin.pickup,
-                      icon: Icon(Icons.trip_origin_rounded, size: 16),
-                      label: Text("Pickup"),
+                      icon: const Icon(Icons.trip_origin_rounded, size: 16),
+                      label: Text(l10n.pickupLabel),
                     ),
                     ButtonSegment(
                       value: ActivePin.dropoff,
-                      icon: Icon(Icons.location_on_rounded, size: 16),
-                      label: Text("Dropoff"),
+                      icon: const Icon(Icons.location_on_rounded, size: 16),
+                      label: Text(l10n.dropoffLabel),
                     ),
                   ],
                   selected: {form.activePin},
@@ -141,29 +150,31 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _pickupAddress,
-                  decoration: const InputDecoration(
-                    labelText: "Pickup address",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.trip_origin_rounded, size: 18),
+                  decoration: InputDecoration(
+                    labelText: l10n.pickupAddressLabel,
+                    border: const OutlineInputBorder(),
+                    prefixIcon:
+                        const Icon(Icons.trip_origin_rounded, size: 18),
                   ),
                   textInputAction: TextInputAction.next,
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                          ? "Enter a pickup address"
+                          ? l10n.enterPickupAddress
                           : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _dropoffAddress,
-                  decoration: const InputDecoration(
-                    labelText: "Dropoff address",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on_rounded, size: 18),
+                  decoration: InputDecoration(
+                    labelText: l10n.dropoffAddressLabel,
+                    border: const OutlineInputBorder(),
+                    prefixIcon:
+                        const Icon(Icons.location_on_rounded, size: 18),
                   ),
                   textInputAction: TextInputAction.done,
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                          ? "Enter a dropoff address"
+                          ? l10n.enterDropoffAddress
                           : null,
                 ),
                 if (form.error != null) ...[
@@ -184,11 +195,11 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text("Confirm booking"),
+                      : Text(l10n.confirmBooking),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Pay cash on arrival — agree the fare with your driver.",
+                  l10n.payCashNote,
                   textAlign: TextAlign.center,
                   style: jakarta.labelSmall,
                 ),
@@ -200,12 +211,12 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
     );
   }
 
-  Widget _dragHandle() => Center(
+  Widget _dragHandle(BuildContext context) => Center(
         child: Container(
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: AppColors.line,
+            color: context.tokens.line,
             borderRadius: BorderRadius.circular(999),
           ),
         ),
@@ -223,7 +234,9 @@ class _MiniHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOf(context);
     final jakarta = Theme.of(context).textTheme;
+    final tokens = tokensOf(context);
     final carParts = [
       if (driver.carModel.trim().isNotEmpty) driver.carModel.trim(),
       if (driver.plate.trim().isNotEmpty) driver.plate.trim(),
@@ -233,13 +246,13 @@ class _MiniHeader extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 22,
-          backgroundColor: AppColors.surface2,
+          backgroundColor: tokens.inset,
           backgroundImage: (driver.photo != null && driver.photo!.isNotEmpty)
               ? NetworkImage(driver.photo!)
               : null,
           child: (driver.photo == null || driver.photo!.isEmpty)
-              ? const Icon(Icons.local_taxi_rounded,
-                  color: AppColors.muted, size: 22)
+              ? Icon(Icons.local_taxi_rounded,
+                  color: tokens.textSecondary, size: 22)
               : null,
         ),
         const SizedBox(width: 12),
@@ -252,14 +265,14 @@ class _MiniHeader extends StatelessWidget {
                   Flexible(
                     child: Text(
                       (driver.name?.trim().isEmpty ?? true)
-                          ? "Driver"
+                          ? l10n.driverFallback
                           : driver.name!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.sora(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        color: tokens.textPrimary,
                       ),
                     ),
                   ),

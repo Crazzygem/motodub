@@ -2,7 +2,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 import "../../features/auth/providers.dart";
+import "../api/error_messages.dart" show localizedErrorFor;
+import "../l10n/l10n.dart";
 import "../models/user.dart";
+import "../preferences/preferences_provider.dart" show appLocaleProvider;
 
 /// Immutable auth snapshot persisted across restarts.
 class AuthState {
@@ -83,12 +86,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return await TokenStore().load() ?? const AuthState();
   }
 
-  String? _friendly(String? code, String? message) {
-    if (code == "NETWORK") {
-      return "Cannot reach server. Is the backend running?";
-    }
-    return message ?? "Something went wrong. Please try again.";
-  }
+  /// Curated codes render in the active locale (Task C); server envelope
+  /// copy stays as-is, generic fallback localized.
+  String? _friendly(String? code, String? message) => localizedErrorFor(
+        lookupAppLocalizations(ref.watch(appLocaleProvider)),
+        code,
+        serverMessage: message,
+      );
 
   Future<String?> login(String email, String password) async {
     final result = await ref.read(authRepoProvider).login(email, password);

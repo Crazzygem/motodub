@@ -1,0 +1,315 @@
+{
+  "@@locale": "en",
+  "navDeck": "Deck",
+  "navHistory": "History",
+  "navAccount": "Account",
+  "navHome": "Home",
+  "retry": "Retry",
+  "refresh": "Refresh",
+  "tryAgain": "Try again",
+  "cancel": "Cancel",
+  "appTagline": "Ride smart. Go far.",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "enterEmail": "Enter your email",
+  "enterValidEmail": "Enter a valid email",
+  "enterPassword": "Enter your password",
+  "logIn": "Log in",
+  "noAccountRegister": "No account? Register",
+  "createAccountTitle": "Create account",
+  "nameLabel": "Name",
+  "phoneLabel": "Phone",
+  "passwordMinLabel": "Password (min. 8 characters)",
+  "registerEnterEmail": "Enter an email",
+  "enterValidPhone": "Enter a valid phone number",
+  "enterName": "Enter your name",
+  "passwordTooShort": "Password must be at least 8 characters",
+  "roleCustomer": "Customer",
+  "roleDriver": "Driver",
+  "roleAdmin": "Admin",
+  "alreadyHaveAccount": "Already have an account? Log in",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "greetingWithName": "{part}, {name}",
+  "@greetingWithName": {
+    "placeholders": {
+      "part": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "findYourRide": "Find your ride below",
+  "hintSwipeRightBook": "Swipe right to book",
+  "hintLeftPass": "Left to pass",
+  "bookStamp": "BOOK",
+  "passStamp": "PASS",
+  "noDriversOnlineTitle": "No drivers online",
+  "noDriversOnlineHint": "No drivers online right now — pull to refresh",
+  "driverFallback": "Driver",
+  "etaMinutes": "{eta} min",
+  "@etaMinutes": {
+    "placeholders": {
+      "eta": {
+        "type": "int"
+      }
+    }
+  },
+  "pricePerKmShort": "{rate} /km",
+  "@pricePerKmShort": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "pickupLabel": "Pickup",
+  "dropoffLabel": "Dropoff",
+  "pickupAddressLabel": "Pickup address",
+  "dropoffAddressLabel": "Dropoff address",
+  "enterPickupAddress": "Enter a pickup address",
+  "enterDropoffAddress": "Enter a dropoff address",
+  "confirmBooking": "Confirm booking",
+  "payCashNote": "Pay cash on arrival — agree the fare with your driver.",
+  "waitingForDriver": "Waiting for your driver to respond…",
+  "completedEmoji": "Completed 🎉",
+  "driverPassedNote": "The driver passed on your request",
+  "rideCancelledNote": "Your ride was cancelled",
+  "cancelRide": "Cancel ride",
+  "backToDeck": "Back to deck",
+  "stepRequested": "Requested",
+  "stepAccepted": "Accepted",
+  "stepEnRoute": "En route",
+  "stepRiding": "Riding",
+  "stepDone": "Done",
+  "yourDriverFallback": "Your driver",
+  "kmEtaRow": "{km} km · {min} min ETA",
+  "@kmEtaRow": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "yourRides": "Your rides",
+  "noRidesYetTitle": "No rides yet",
+  "historyEmptyHint": "Your trips will show up here once you book or drive one.",
+  "couldntLoadRides": "Couldn't load your rides",
+  "withDriver": "with {name}",
+  "@withDriver": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "forCustomer": "for {name}",
+  "@forCustomer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "statusAll": "All",
+  "statusRequested": "Requested",
+  "statusAccepted": "Accepted",
+  "statusEnRoute": "En Route",
+  "statusInProgress": "In Progress",
+  "statusCompleted": "Completed",
+  "statusCancelled": "Cancelled",
+  "statusDeclined": "Declined",
+  "rateYourTrip": "Rate your trip",
+  "yourRiderFallback": "Your rider",
+  "howWasTrip": "How was your trip?",
+  "howWasTripWith": "How was your trip with {name}?",
+  "@howWasTripWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submitRating": "Submit",
+  "thanksTitle": "Thanks!",
+  "alreadyRatedNote": "You already rated this ride.",
+  "ratingHelpsNote": "Your rating helps everyone ride safer.",
+  "doneButton": "Done",
+  "couldntLoadRide": "Couldn't load this ride",
+  "motoDubDriverTitle": "MotoDub Driver",
+  "youAreOnline": "You're online",
+  "youAreOffline": "You're offline",
+  "receivingRequests": "Receiving ride requests",
+  "goOnlineHint": "Go online to receive requests",
+  "verifiedChip": "Verified",
+  "pendingReviewChip": "Pending review",
+  "setupVehicleTitle": "Set up your vehicle",
+  "setupVehicleSubtitle": "One profile per driver — admin review follows.",
+  "carModelLabel": "Car model",
+  "plateLabel": "Plate",
+  "licenseNoLabel": "License no",
+  "pricePerKmLabel": "Price per km",
+  "requiredField": "Required",
+  "enterNumber": "Enter a number",
+  "saveVehicle": "Save vehicle",
+  "todayTitle": "Today",
+  "ridesDoneLabel": "Rides done",
+  "avgRatingLabel": "Avg rating",
+  "recentActivityTitle": "Recent activity",
+  "justNow": "just now",
+  "minutesAgo": "{n}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{n}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "activityEmptyTitle": "No rides yet",
+  "activityEmptyHint": "Your completed trips will show up here.",
+  "couldntLoadDashboard": "Couldn't load your dashboard",
+  "couldntLoadActivity": "Couldn't load your activity.",
+  "customerFallback": "Customer",
+  "kmPill": "{km} km",
+  "@kmPill": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptButton": "Accept",
+  "declineButton": "Decline",
+  "onMyWayCta": "On my way",
+  "startRideCta": "Start ride",
+  "endRideCta": "End ride ✓",
+  "adminTag": "ADMIN",
+  "navDashboard": "Dashboard",
+  "navDrivers": "Drivers",
+  "navRides": "Rides",
+  "navLiveMap": "Live Map",
+  "kpiLiveRides": "Live rides",
+  "kpiOnlineDrivers": "Online drivers",
+  "kpiCompletedToday": "Completed today",
+  "kpiAvgRatingCard": "Avg rating",
+  "couldntLoadNumbersTitle": "Couldn't load today's numbers",
+  "couldntLoadNumbersBody": "Couldn't load today's numbers.",
+  "approveDriverTitle": "Approve driver",
+  "approveDriverBody": "Approve {name}? They will start receiving ride requests.",
+  "@approveDriverBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "suspendDriverTitle": "Suspend driver",
+  "suspendDriverBody": "Suspend {name}? Their account will be blocked from new bookings.",
+  "@suspendDriverBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approveButton": "Approve",
+  "suspendButton": "Suspend",
+  "chipPending": "Pending",
+  "chipSuspended": "Suspended",
+  "chipOnline": "Online",
+  "chipOffline": "Offline",
+  "noDriversYetTitle": "No drivers yet",
+  "noDriversHint": "Driver profiles will show up here once they sign up.",
+  "couldntLoadDrivers": "Couldn't load drivers",
+  "noRidesHereTitle": "No rides here",
+  "noRidesFilterHint": "Nothing matches this filter right now.",
+  "couldntLoadFeed": "Couldn't load the feed",
+  "liveMapEmpty": "No online drivers right now",
+  "accountTitle": "Account",
+  "signedInFallback": "Signed in",
+  "editProfileTooltip": "Edit profile",
+  "changePasswordItem": "Change password",
+  "changePasswordSubtitle": "You'll log in again with the new one",
+  "logoutButton": "Log out",
+  "vehicleTitle": "Vehicle",
+  "editVehicleTooltip": "Edit vehicle",
+  "licenseRow": "License",
+  "noVehicleYet": "No vehicle yet",
+  "editProfileTitle": "Edit profile",
+  "atLeast2Chars": "At least 2 characters",
+  "enterYourPhone": "Enter your phone number",
+  "saveChanges": "Save changes",
+  "currentPasswordLabel": "Current password",
+  "newPasswordLabel": "New password",
+  "confirmPasswordLabel": "Confirm new password",
+  "enterCurrentPassword": "Enter your current password",
+  "enterNewPassword": "Enter a new password",
+  "atLeast8Chars": "At least 8 characters",
+  "passwordsDontMatch": "Passwords don't match",
+  "updatePassword": "Update password",
+  "currentPasswordIncorrect": "Your current password is incorrect.",
+  "passwordChangedRelogin": "Password changed. Please log in again.",
+  "preferencesTitle": "Preferences",
+  "darkModeLabel": "Dark mode",
+  "languageLabel": "Language",
+  "languageEnglish": "English",
+  "languageKhmer": "ខ្មែរ",
+  "errValidation": "Please check your details and try again.",
+  "errUnauthorized": "Please log in again.",
+  "errForbidden": "You don't have permission to do that.",
+  "errNotFound": "We couldn't find that.",
+  "errRideInvalidTransition": "That ride can't be updated from its current state.",
+  "errBusyDriver": "This driver is busy right now. Try another one.",
+  "errBusyCustomer": "You already have an active ride.",
+  "errNotVerified": "Your account isn't verified yet. Please wait for approval.",
+  "errNetwork": "Cannot reach server. Is the backend running?",
+  "errGeneric": "Something went wrong. Please try again.",
+  "etaRow": "ETA {value}",
+  "@etaRow": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "enterCarModel": "Enter your car model",
+  "enterPlate": "Enter your plate",
+  "enterLicense": "Enter your license",
+  "pricePerKmDollarLabel": "Price per km ($)",
+  "enterValidPricePerKm": "Enter a valid price per km",
+  "updateVehicleButton": "Update vehicle",
+  "vehiclePriceRow": "${rate} / km",
+  "@vehiclePriceRow": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "month1": "Jan",
+  "month2": "Feb",
+  "month3": "Mar",
+  "month4": "Apr",
+  "month5": "May",
+  "month6": "Jun",
+  "month7": "Jul",
+  "month8": "Aug",
+  "month9": "Sep",
+  "month10": "Oct",
+  "month11": "Nov",
+  "month12": "Dec"
+}

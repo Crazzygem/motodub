@@ -2,6 +2,7 @@ import "dart:math" as math;
 
 import "package:flutter/material.dart";
 
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 
@@ -38,7 +39,9 @@ class RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final name = request.customerName ?? "Customer";
+    final tokens = context.tokens;
+    final s = context.l10n;
+    final name = request.customerName ?? s.customerFallback;
     final initials = name
         .split(" ")
         .where((part) => part.isNotEmpty)
@@ -56,9 +59,9 @@ class RequestCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokens.line),
         boxShadow: const [
           BoxShadow(
             color: Color(0x2E111827),
@@ -78,7 +81,7 @@ class RequestCard extends StatelessWidget {
                 child: Text(
                   initials.isEmpty ? "?" : initials,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.ink,
+                    color: AppColors.ink, // on-amber avatar: ink stays
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -96,8 +99,8 @@ class RequestCard extends StatelessWidget {
                     if (rating != null)
                       Row(
                         children: [
-                          const Icon(Icons.star_rounded,
-                              size: 14, color: AppColors.amberDeep),
+                          Icon(Icons.star_rounded,
+                              size: 14, color: tokens.accentStrong),
                           const SizedBox(width: 3),
                           Text(rating, style: theme.textTheme.labelMedium),
                         ],
@@ -113,7 +116,7 @@ class RequestCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  "$km km",
+                  s.kmPill(km),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.ink,
                     fontWeight: FontWeight.w700,
@@ -140,14 +143,14 @@ class RequestCard extends StatelessWidget {
                     ),
                   ),
                   onPressed: onAccept,
-                  child: const Text("Accept"),
+                  child: Text(s.acceptButton),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surface,
+                    backgroundColor: tokens.card,
                     foregroundColor: AppColors.passRed,
                     side: const BorderSide(color: AppColors.passRed),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -156,7 +159,7 @@ class RequestCard extends StatelessWidget {
                     ),
                   ),
                   onPressed: onDecline,
-                  child: const Text("Decline"),
+                  child: Text(s.declineButton),
                 ),
               ),
             ],

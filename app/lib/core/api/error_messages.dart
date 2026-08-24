@@ -1,5 +1,10 @@
+import "../../l10n/generated/app_localizations.dart";
+
 /// Message shown when a request never produced a server envelope
 /// (timeout, connection refused, no route to host).
+///
+/// (Task C localization support — curated copy below also lives in the ARB
+/// catalogs; see [localizedErrorFor].)
 const String networkUnreachableMessage =
     "Cannot reach server. Is the backend running?";
 
@@ -29,3 +34,27 @@ String errorMessageFor(String code, {String? serverMessage}) {
   if (serverMessage != null && serverMessage.isNotEmpty) return serverMessage;
   return genericErrorMessage;
 }
+
+/// Locale-aware twin of [errorMessageFor] (Task C): curated codes render
+/// from the active catalog; unknown codes keep the server envelope's own
+/// message (envelopes stay English by design), else fall back generically.
+String localizedErrorFor(
+  AppLocalizations s,
+  String? code, {
+  String? serverMessage,
+}) =>
+    switch (code) {
+      "VALIDATION_ERROR" => s.errValidation,
+      "UNAUTHORIZED" => s.errUnauthorized,
+      "FORBIDDEN" => s.errForbidden,
+      "NOT_FOUND" => s.errNotFound,
+      "RIDE_INVALID_TRANSITION" => s.errRideInvalidTransition,
+      "RIDE_BUSY_DRIVER" => s.errBusyDriver,
+      "RIDE_BUSY_CUSTOMER" => s.errBusyCustomer,
+      "DRIVER_NOT_VERIFIED" => s.errNotVerified,
+      "NETWORK" => s.errNetwork,
+      _ =>
+        (serverMessage != null && serverMessage.isNotEmpty)
+            ? serverMessage
+            : s.errGeneric,
+    };

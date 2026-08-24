@@ -3,7 +3,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/admin_repo.dart";
 import "../../core/api/api_client.dart" show ApiResult;
-import "../../core/api/error_messages.dart" show genericErrorMessage;
+import "../../core/api/error_messages.dart" show localizedErrorFor;
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "admin_screen.dart" show adminRepoProvider;
 
@@ -30,14 +31,14 @@ class DashboardTab extends ConsumerWidget {
       child: stats.when(
         loading: () => const _LoadingView(),
         error: (_, _) => _ErrorView(
-          message: genericErrorMessage,
+          message: context.l10n.errGeneric,
           onRetry: () => ref.invalidate(statsProvider),
         ),
         data: (result) => result.isOk
             ? _Grid(theme: theme, stats: result.data!)
             : _ErrorView(
-                message:
-                    result.message ?? "Couldn't load today's numbers.",
+                message: localizedErrorFor(context.l10n, result.code,
+                    serverMessage: result.message),
                 onRetry: () => ref.invalidate(statsProvider),
               ),
       ),
@@ -62,25 +63,25 @@ class _Grid extends StatelessWidget {
       childAspectRatio: 1.35,
       children: [
         _KpiCard(
-          label: "Live rides",
+          label: context.l10n.kpiLiveRides,
           value: "${stats.requestedNow}",
           icon: Icons.directions_car_rounded,
           tint: AppColors.amber,
         ),
         _KpiCard(
-          label: "Online drivers",
+          label: context.l10n.kpiOnlineDrivers,
           value: "${stats.onlineDrivers}",
           icon: Icons.wifi_rounded,
           tint: AppColors.bookGreen,
         ),
         _KpiCard(
-          label: "Completed today",
+          label: context.l10n.kpiCompletedToday,
           value: "${stats.completedToday}",
           icon: Icons.check_circle_rounded,
           tint: AppColors.amberDeep,
         ),
         _KpiCard(
-          label: "Avg rating",
+          label: context.l10n.kpiAvgRatingCard,
           value: stats.avgRating?.toStringAsFixed(2) ?? "—",
           icon: Icons.star_rounded,
           tint: const Color(0xFFFCD34D), // star amber, DESIGN §5
@@ -110,9 +111,9 @@ class _KpiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Stack(
         children: [
@@ -139,7 +140,7 @@ class _KpiCard extends StatelessWidget {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.amberDeep,
+                    color: tokensOf(context).accentStrong,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -186,7 +187,7 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Couldn't load today's numbers",
+              Text(context.l10n.couldntLoadNumbersTitle,
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Padding(
@@ -203,7 +204,7 @@ class _ErrorView extends StatelessWidget {
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("Try again"),
+                label: Text(context.l10n.tryAgain),
               ),
             ],
           ),

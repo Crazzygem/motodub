@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 
@@ -24,13 +25,15 @@ class RideControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final s = context.l10n;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,7 +41,7 @@ class RideControls extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final (i, step) in _steps.indexed) ...[
+              for (final (i, step) in localizedSteps(s).indexed) ...[
                 if (i > 0) const _StepLine(),
                 Expanded(child: _StepDot(step: step, ride: ride)),
               ],
@@ -55,7 +58,7 @@ class RideControls extends StatelessWidget {
             "accepted" => [
                 _cta(
                   context,
-                  label: "On my way",
+                  label: s.onMyWayCta,
                   background: AppColors.amber,
                   onPressed: onStart,
                 ),
@@ -63,7 +66,7 @@ class RideControls extends StatelessWidget {
             "en_route" => [
                 _cta(
                   context,
-                  label: "Start ride",
+                  label: s.startRideCta,
                   background: AppColors.amber,
                   onPressed: onStartRide,
                 ),
@@ -71,7 +74,7 @@ class RideControls extends StatelessWidget {
             "in_progress" => [
                 _cta(
                   context,
-                  label: "End ride ✓",
+                  label: s.endRideCta,
                   background: AppColors.amber,
                   onPressed: onComplete,
                 ),
@@ -79,7 +82,7 @@ class RideControls extends StatelessWidget {
             "completed" => [
                 _cta(
                   context,
-                  label: "Completed 🎉",
+                  label: s.completedEmoji,
                   background: AppColors.bookGreen,
                   onPressed: null,
                 ),
@@ -115,12 +118,13 @@ class RideControls extends StatelessWidget {
   }
 }
 
-const _steps = <({String title, String status})>[
-  (title: "Accepted", status: "accepted"),
-  (title: "En route", status: "en_route"),
-  (title: "Riding", status: "in_progress"),
-  (title: "Done", status: "completed"),
-];
+/// Wire statuses paired with their localized step labels.
+List<({String title, String status})> localizedSteps(AppLocalizations s) => [
+      (title: s.stepAccepted, status: "accepted"),
+      (title: s.stepEnRoute, status: "en_route"),
+      (title: s.stepRiding, status: "in_progress"),
+      (title: s.stepDone, status: "completed"),
+    ];
 
 class _StepDot extends StatelessWidget {
   const _StepDot({required this.step, required this.ride});
@@ -130,13 +134,14 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stepIndex = _steps.indexWhere((s) => s.status == step.status);
-    final rideIndex = _steps.indexWhere((s) => s.status == ride.status);
+    final steps = localizedSteps(l10nOf(context));
+    final stepIndex = steps.indexWhere((st) => st.status == step.status);
+    final rideIndex = steps.indexWhere((st) => st.status == ride.status);
     final reached = rideIndex >= 0 && stepIndex <= rideIndex;
     final isCurrent = stepIndex == rideIndex;
 
     final color = !reached
-        ? AppColors.line
+        ? tokensOf(context).line
         : isCurrent
             ? AppColors.amber
             : AppColors.bookGreen;
@@ -154,7 +159,9 @@ class _StepDot extends StatelessWidget {
           child: Text(
             step.title,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: reached ? AppColors.ink : AppColors.faint,
+                  color: reached
+                      ? tokensOf(context).textPrimary
+                      : tokensOf(context).textTertiary,
                 ),
           ),
         ),
@@ -172,7 +179,7 @@ class _StepLine extends StatelessWidget {
       width: 18,
       height: 2,
       margin: const EdgeInsets.only(top: 6),
-      color: AppColors.line,
+      color: context.tokens.line,
     );
   }
 }

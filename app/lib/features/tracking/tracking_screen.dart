@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 import "package:latlong2/latlong.dart";
 
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_sheet.dart" show kOsmTileUrl;
@@ -106,9 +107,9 @@ class _Content extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.tokens.card,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.tokens.line),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -123,7 +124,8 @@ class _Content extends StatelessWidget {
                   const SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(onPressed: onRetry, child: const Text("Retry")),
+                    child: TextButton(
+                        onPressed: onRetry, child: Text(l10nOf(context).retry)),
                   ),
                   const SizedBox(height: 6),
                 ],
@@ -131,7 +133,7 @@ class _Content extends StatelessWidget {
                   // Waiting — no card yet, but the customer stays in control.
                   "requested" => [
                       Text(
-                        "Waiting for your driver to respond…",
+                        l10nOf(context).waitingForDriver,
                         textAlign: TextAlign.center,
                         style: jakarta.bodyMedium,
                       ),
@@ -144,19 +146,19 @@ class _Content extends StatelessWidget {
                       _CancelButton(canceling: tracking.canceling, onCancel: onCancel),
                     ],
                   "completed" => [
-                      Text("Completed 🎉", textAlign: TextAlign.center,
+                      Text(l10nOf(context).completedEmoji, textAlign: TextAlign.center,
                           style: GoogleFonts.sora(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
                               color: AppColors.bookGreen)),
                     ],
                   "declined" => [
-                      const _TerminalNote(
-                        message: "The driver passed on your request",
+                      _TerminalNote(
+                        message: l10nOf(context).driverPassedNote,
                       ),
                     ],
                   _ => [
-                      const _TerminalNote(message: "Your ride was cancelled"),
+                      _TerminalNote(message: l10nOf(context).rideCancelledNote),
                     ],
                 },
               ],
@@ -265,23 +267,23 @@ class _StatusStepper extends StatelessWidget {
 
   final String status;
 
-  static const _steps = <({String title, String status})>[
-    (title: "Requested", status: "requested"),
-    (title: "Accepted", status: "accepted"),
-    (title: "En route", status: "en_route"),
-    (title: "Riding", status: "in_progress"),
-    (title: "Done", status: "completed"),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final current = _steps.indexWhere((s) => s.status == status);
+    final s = l10nOf(context);
+    final steps = <({String title, String status})>[
+      (title: s.stepRequested, status: "requested"),
+      (title: s.stepAccepted, status: "accepted"),
+      (title: s.stepEnRoute, status: "en_route"),
+      (title: s.stepRiding, status: "in_progress"),
+      (title: s.stepDone, status: "completed"),
+    ];
+    final current = steps.indexWhere((st) => st.status == status);
     if (current < 0) return const SizedBox.shrink();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final (i, step) in _steps.indexed) ...[
+        for (final (i, step) in steps.indexed) ...[
           if (i > 0) const _StepLine(),
           Expanded(
             child: _StepDot(title: step.title, index: i, current: current),
@@ -305,7 +307,7 @@ class _StepDot extends StatelessWidget {
     final isCurrent = index == current;
 
     final color = !reached
-        ? AppColors.line
+        ? tokensOf(context).line
         : isCurrent
             ? AppColors.amber
             : AppColors.bookGreen;
@@ -323,7 +325,8 @@ class _StepDot extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: reached ? AppColors.ink : AppColors.faint,
+                  color:
+                      reached ? tokensOf(context).textPrimary : tokensOf(context).textTertiary,
                 ),
           ),
         ),
@@ -341,7 +344,7 @@ class _StepLine extends StatelessWidget {
       width: 14,
       height: 2,
       margin: const EdgeInsets.only(top: 6),
-      color: AppColors.line,
+      color: context.tokens.line,
     );
   }
 }
@@ -417,9 +420,9 @@ class _DriverCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: tokensOf(context).inset,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokensOf(context).line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -428,9 +431,9 @@ class _DriverCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppColors.surface,
-                child: const Icon(Icons.local_taxi_rounded,
-                    color: AppColors.muted, size: 22),
+                backgroundColor: tokensOf(context).card,
+                child: Icon(Icons.local_taxi_rounded,
+                    color: tokensOf(context).textSecondary, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -439,14 +442,14 @@ class _DriverCard extends StatelessWidget {
                   children: [
                     Text(
                       (ride.driverName?.trim().isEmpty ?? true)
-                          ? "Your driver"
+                          ? l10nOf(context).yourDriverFallback
                           : ride.driverName!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.sora(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        color: tokensOf(context).textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -463,8 +466,8 @@ class _DriverCard extends StatelessWidget {
               if ((ride.driverPhone ?? "").isNotEmpty)
                 Row(
                   children: [
-                    const Icon(Icons.call_rounded,
-                        size: 15, color: AppColors.amberDeep),
+                    Icon(Icons.call_rounded,
+                        size: 15, color: tokensOf(context).accentStrong),
                     const SizedBox(width: 4),
                     Text(ride.driverPhone!, style: jakarta.labelMedium),
                   ],
@@ -474,11 +477,12 @@ class _DriverCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.route_rounded,
-                  size: 15, color: AppColors.amberDeep),
+              Icon(Icons.route_rounded,
+                  size: 15, color: tokensOf(context).accentStrong),
               const SizedBox(width: 6),
               Text(
-                "${km.toStringAsFixed(1)} km · $etaMin min ETA",
+                l10nOf(context)
+                    .kmEtaRow(km.toStringAsFixed(1), etaMin),
                 style: jakarta.labelMedium,
               ),
             ],
@@ -504,9 +508,9 @@ class _CancelButton extends StatelessWidget {
     return FilledButton(
       onPressed: canceling ? null : onCancel,
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.surface,
+        backgroundColor: tokensOf(context).card,
         foregroundColor: AppColors.passRed,
-        disabledBackgroundColor: AppColors.surface,
+        disabledBackgroundColor: tokensOf(context).card,
         disabledForegroundColor: AppColors.passRed.withValues(alpha: .45),
         side: const BorderSide(color: AppColors.passRed),
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -518,7 +522,7 @@ class _CancelButton extends StatelessWidget {
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Text("Cancel ride"),
+          : Text(l10nOf(context).cancelRide),
     );
   }
 }
@@ -536,7 +540,7 @@ class _TerminalNote extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: AppColors.line.withValues(alpha: .35),
+            color: tokensOf(context).line.withValues(alpha: .35),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -545,13 +549,13 @@ class _TerminalNote extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
-                ?.copyWith(color: AppColors.muted),
+                ?.copyWith(color: tokensOf(context).textSecondary),
           ),
         ),
         const SizedBox(height: 12),
         FilledButton.tonal(
           onPressed: () => context.go("/customer"),
-          child: const Text("Back to deck"),
+          child: Text(l10nOf(context).backToDeck),
         ),
       ],
     );
@@ -610,7 +614,7 @@ class _ErrorPanel extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () => context.go("/customer"),
-            child: const Text("Back to deck"),
+            child: Text(l10nOf(context).backToDeck),
           ),
         ],
       ),

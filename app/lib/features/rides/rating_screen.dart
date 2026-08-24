@@ -5,7 +5,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../core/l10n/l10n.dart";
+import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/models/ride.dart";
+import "../../core/preferences/preferences_provider.dart" show appLocaleProvider;
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_provider.dart" show rideRepoProvider;
 
@@ -84,7 +87,13 @@ class RatingNotifier extends AutoDisposeFamilyNotifier<RatingState, int> {
     final result = await ref.read(rideRepoProvider).getById(id);
     if (_disposed) return;
     if (!result.isOk) {
-      state = RatingState(error: result.message);
+      state = RatingState(
+        error: localizedErrorFor(
+          lookupAppLocalizations(ref.watch(appLocaleProvider)),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
     state = RatingState(ride: result.data);
@@ -116,7 +125,14 @@ class RatingNotifier extends AutoDisposeFamilyNotifier<RatingState, int> {
         );
         return;
       }
-      state = state.copyWith(submitting: false, error: result.message);
+      state = state.copyWith(
+        submitting: false,
+        error: localizedErrorFor(
+          lookupAppLocalizations(ref.watch(appLocaleProvider)),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
     state = state.copyWith(
@@ -217,15 +233,17 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
 
 /// The OTHER party, per viewer role: customers rate their driver, drivers
 /// rate their rider. Falls back across snapshots so odd rows still render.
-({String name, String caption}) _party(Ride ride, String? viewerRole) {
+({String name, String caption}) _party(
+    Ride ride, String? viewerRole, AppLocalizations s) {
   final ratesRider = viewerRole == "driver";
   final snapshot = ratesRider ? ride.customerName : ride.driverName;
   final name =
       (snapshot == null || snapshot.trim().isEmpty) ? null : snapshot.trim();
 
   return (
-    name: name ?? (ratesRider ? "Your rider" : "Your driver"),
-    caption: name == null ? "How was your trip?" : "How was your trip with $name?",
+    name: name ?? (ratesRider ? s.yourRiderFallback : s.yourDriverFallback),
+    caption:
+        name == null ? s.howWasTrip : s.howWasTripWith(name),
   );
 }
 
@@ -295,7 +313,7 @@ class _RateForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final party = _party(ride, viewerRole);
+    final party = _party(ride, viewerRole, context.l10n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -309,7 +327,8 @@ class _RateForm extends StatelessWidget {
                 icon: const Icon(Icons.arrow_back_rounded),
               ),
               Expanded(
-                child: Text("Rate your trip", style: theme.textTheme.titleLarge),
+                child: Text(context.l10n.rateYourTrip,
+                    style: theme.textTheme.titleLarge),
               ),
             ],
           ),
@@ -340,8 +359,9 @@ class _RateForm extends StatelessWidget {
                             Icons.star_rounded,
                             key: Key("star-$n"),
                             size: 44,
-                            color:
-                                n <= selected ? ratingStarColor : AppColors.line,
+                            color: n <= selected
+                                ? ratingStarColor
+                                : tokensOf(context).line,
                           ),
                         ),
                       ),
@@ -372,7 +392,7 @@ class _RateForm extends StatelessWidget {
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text("Submit"),
+                      : Text(context.l10n.submitRating),
                 ),
               ],
             ),
@@ -404,16 +424,16 @@ class _ThanksCard extends StatelessWidget {
             const Icon(Icons.check_circle_rounded,
                 color: AppColors.bookGreen, size: 68),
             const SizedBox(height: 14),
-            Text("Thanks!",
+            Text(l10nOf(context).thanksTitle,
                 style: GoogleFonts.sora(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.ink)),
+                    color: tokensOf(context).textPrimary)),
             const SizedBox(height: 6),
             Text(
               alreadyRated
-                  ? "You already rated this ride."
-                  : "Your rating helps everyone ride safer.",
+                  ? l10nOf(context).alreadyRatedNote
+                  : l10nOf(context).ratingHelpsNote,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
@@ -428,7 +448,7 @@ class _ThanksCard extends StatelessWidget {
                 ),
               ),
               onPressed: onDone,
-              child: const Text("Done"),
+              child: Text(l10nOf(context).doneButton),
             ),
           ],
         ),
@@ -503,7 +523,7 @@ class _BootError extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Couldn't load this ride",
+                Text(context.l10n.couldntLoadRide,
                     style: theme.textTheme.titleMedium),
                 const SizedBox(height: 6),
                 Text(message,
@@ -517,7 +537,7 @@ class _BootError extends StatelessWidget {
                   ),
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text("Try again"),
+                  label: Text(context.l10n.tryAgain),
                 ),
               ],
             ),

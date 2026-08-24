@@ -2,9 +2,25 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/error_messages.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
+import "../../core/preferences/preferences_provider.dart" show appLocaleProvider;
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_provider.dart" show rideRepoProvider;
+
+/// Localized status chip label ("en_route" → "En route" / Khmer twin).
+String localizedStatusLabel(AppLocalizations s, String status) =>
+    switch (status) {
+      "all" => s.statusAll,
+      "requested" => s.statusRequested,
+      "accepted" => s.statusAccepted,
+      "en_route" => s.statusEnRoute,
+      "in_progress" => s.statusInProgress,
+      "completed" => s.statusCompleted,
+      "cancelled" => s.statusCancelled,
+      "declined" => s.statusDeclined,
+      _ => historyStatusLabel(status),
+    };
 
 // DESIGN.md §10.4 history status chips: completed green · cancelled grey ·
 // declined grey (muted) · anything still moving keeps the amber brand.
@@ -30,15 +46,8 @@ String historyStatusLabel(String status) {
       .join(" ");
 }
 
-String _formatDate(DateTime utc) {
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  final d = utc.toLocal();
-  return "${d.day} ${months[d.month - 1]} · "
-      "${d.hour.toString().padLeft(2, "0")}:${d.minute.toString().padLeft(2, "0")}";
-}
+String _formatDate(DateTime utc, AppLocalizations s) =>
+    shortDateTime(s, utc.toLocal());
 
 /// Task 5.2 — one fetch of GET /api/rides/mine plus its render state.
 /// Loading is implicit: `rides == null && error == null`.
@@ -77,7 +86,11 @@ class HistoryNotifier extends AutoDisposeNotifier<HistoryState> {
     }
     state = HistoryState(
       rides: state.rides,
-      error: errorMessageFor(result.code!, serverMessage: result.message),
+      error: localizedErrorFor(
+        lookupAppLocalizations(ref.watch(appLocaleProvider)),
+        result.code,
+        serverMessage: result.message,
+      ),
     );
   }
 
@@ -118,7 +131,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   Expanded(
-                    child: Text("Your rides", style: theme.textTheme.titleLarge),
+                    child: Text(context.l10n.yourRides,
+                        style: theme.textTheme.titleLarge),
                   ),
                 ],
               ),
@@ -188,10 +202,11 @@ class _EmptyView extends StatelessWidget {
             children: [
               const Text("🧾", style: TextStyle(fontSize: 52)),
               const SizedBox(height: 12),
-              Text("No rides yet", style: theme.textTheme.titleMedium),
+              Text(context.l10n.noRidesYetTitle,
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Text(
-                "Your trips will show up here once you book or drive one.",
+                context.l10n.historyEmptyHint,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -221,7 +236,7 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Couldn't load your rides",
+              Text(context.l10n.couldntLoadRides,
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Padding(
@@ -238,7 +253,7 @@ class _ErrorView extends StatelessWidget {
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("Try again"),
+                label: Text(context.l10n.tryAgain),
               ),
             ],
           ),
@@ -255,29 +270,30 @@ class _RideCard extends StatelessWidget {
 
   /// Opposite-party line — customer view shows the driver (+ vehicle when
   /// present), driver view shows the customer.
-  String get _partyLine {
+  String _partyLine(AppLocalizations s) {
     if (ride.driverName != null) {
       final vehicle = ride.driverPlate == null
           ? ""
           : " · ${ride.driverCarModel} ${ride.driverPlate}";
-      return "with ${ride.driverName}$vehicle";
+      return "${s.withDriver(ride.driverName!)}$vehicle";
     }
-    if (ride.customerName != null) return "for ${ride.customerName}";
+    if (ride.customerName != null) return s.forCustomer(ride.customerName!);
     return "";
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = context.l10n;
     final color = historyStatusColor(ride.status);
-    final date = ride.createdAt == null ? "" : _formatDate(ride.createdAt!);
+    final date = ride.createdAt == null ? "" : _formatDate(ride.createdAt!, s);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +308,7 @@ class _RideCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  historyStatusLabel(ride.status),
+                  localizedStatusLabel(s, ride.status),
                   style: theme.textTheme.labelSmall?.copyWith(color: color),
                 ),
               ),
@@ -326,9 +342,9 @@ class _RideCard extends StatelessWidget {
               ),
             ],
           ),
-          if (_partyLine.isNotEmpty) ...[
+          if (_partyLine(s).isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(_partyLine, style: theme.textTheme.labelMedium),
+            Text(_partyLine(s), style: theme.textTheme.labelMedium),
           ],
         ],
       ),

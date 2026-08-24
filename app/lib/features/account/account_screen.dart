@@ -2,8 +2,11 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/api_client.dart" show apiBaseUrl;
+import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/auth/auth_state.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
+import "../../core/preferences/preferences_provider.dart";
 import "../../core/theme/app_theme.dart";
 import "../deck/deck_provider.dart" show driverRepoProvider;
 import "../auth/providers.dart" show userRepoProvider;
@@ -18,7 +21,70 @@ class LogoutButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return FilledButton.tonal(
       onPressed: () => ref.read(authProvider.notifier).logout(),
-      child: const Text("Log out"),
+      child: Text(l10nOf(context).logoutButton),
+    );
+  }
+}
+
+/// Task C — Preferences: dark-mode switch + English/Khmer language
+/// selector. Both write through [preferencesProvider] (instant apply,
+/// SharedPreferences persistence).
+class _PreferencesCard extends ConsumerWidget {
+  const _PreferencesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final prefs = ref.watch(preferencesProvider).valueOrNull;
+    final notifier = ref.read(preferencesProvider.notifier);
+    final dark = prefs?.themeMode == ThemeMode.dark;
+    final khmer = prefs?.locale?.languageCode == "km";
+    final s = l10nOf(context);
+
+    return Material(
+      color: context.tokens.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: context.tokens.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            key: const Key("prefs-dark-switch"),
+            value: dark,
+            onChanged: (value) => notifier.setThemeMode(
+              value ? ThemeMode.dark : ThemeMode.light,
+            ),
+            activeTrackColor: AppColors.amber,
+            activeThumbColor: AppColors.ink,
+            title: Text(s.darkModeLabel, style: theme.textTheme.labelLarge),
+            secondary: Icon(Icons.dark_mode_rounded,
+                size: 22, color: context.tokens.accentStrong),
+          ),
+          ListTile(
+            leading: Icon(Icons.translate_rounded,
+                size: 22, color: context.tokens.accentStrong),
+            title: Text(s.languageLabel, style: theme.textTheme.labelLarge),
+          ),
+          Padding(
+            key: const Key("prefs-language-segmented"),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: SegmentedButton<String>(
+              segments: [
+                ButtonSegment(value: "en", label: Text(s.languageEnglish)),
+                ButtonSegment(value: "km", label: Text(s.languageKhmer)),
+              ],
+              selected: {khmer ? "km" : "en"},
+              onSelectionChanged: (selection) => notifier.setLocale(
+                selection.first == "km"
+                    ? const Locale("km")
+                    : const Locale("en"),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -81,7 +147,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: tokensOf(context).card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -103,7 +169,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: tokensOf(context).card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -120,6 +186,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final session = ref.watch(authProvider).valueOrNull ?? const AuthState();
     final name = session.name;
     final email = session.email;
@@ -130,14 +197,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           children: [
-            Text("Account", style: theme.textTheme.titleLarge),
+            Text(l10n.accountTitle, style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.tokens.card,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.tokens.line),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +222,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name ?? "Signed in",
+                            Text(name ?? l10n.signedInFallback,
                                 style: theme.textTheme.titleMedium),
                             const SizedBox(height: 2),
                             Text(
@@ -168,7 +235,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         ),
                       ),
                       IconButton(
-                        tooltip: "Edit profile",
+                        tooltip: l10n.editProfileTooltip,
                         onPressed: _openEditProfileSheet,
                         icon: const Icon(Icons.edit_rounded, size: 20),
                       ),
@@ -198,13 +265,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             _ActionCard(
               onTap: _openPasswordSheet,
               icon: Icons.lock_outline_rounded,
-              title: "Change password",
-              subtitle: "You'll log in again with the new one",
+              title: l10n.changePasswordItem,
+              subtitle: l10n.changePasswordSubtitle,
             ),
             if (session.role == "driver") ...[
               const SizedBox(height: 12),
               _VehicleSection(),
             ],
+            const SizedBox(height: 12),
+            const _PreferencesCard(),
             const SizedBox(height: 16),
             const SizedBox(width: double.infinity, child: LogoutButton()),
           ],
@@ -300,18 +369,19 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: AppColors.surface,
+      color: context.tokens.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: context.tokens.line),
       ),
       child: ListTile(
         onTap: onTap,
-        leading: Icon(icon, color: AppColors.amberDeep, size: 22),
+        leading:
+            Icon(icon, color: context.tokens.accentStrong, size: 22),
         title: Text(title, style: theme.textTheme.labelLarge),
         subtitle: Text(subtitle, style: theme.textTheme.bodyMedium),
-        trailing: const Icon(Icons.chevron_right_rounded,
-            color: AppColors.faint),
+        trailing: Icon(Icons.chevron_right_rounded,
+            color: context.tokens.textTertiary),
       ),
     );
   }
@@ -326,7 +396,7 @@ Future<T?> _showFormSheet<T>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: tokensOf(context).card,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -340,12 +410,12 @@ Future<T?> _showFormSheet<T>(
   );
 }
 
-Widget _dragHandle() => Center(
+Widget _dragHandle(BuildContext context) => Center(
       child: Container(
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.line,
+          color: context.tokens.line,
           borderRadius: BorderRadius.circular(999),
         ),
       ),
@@ -357,7 +427,8 @@ InputDecoration _field(String label, IconData icon) => InputDecoration(
       prefixIcon: Icon(icon, size: 18),
     );
 
-TextFormField _sheetField({
+TextFormField _sheetField(
+  BuildContext context, {
   required TextEditingController controller,
   required String label,
   required IconData icon,
@@ -490,32 +561,36 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _dragHandle(),
+                _dragHandle(context),
                 const SizedBox(height: 8),
-                Text("Edit profile",
+                Text(context.l10n.editProfileTitle,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 14),
                 _sheetField(
+                  context,
                   controller: _name,
-                  label: "Name",
+                  label: context.l10n.nameLabel,
                   icon: Icons.person_outline_rounded,
                   validator: (value) {
                     final v = value?.trim() ?? "";
-                    if (v.isEmpty) return "Enter your name";
-                    if (v.length < 2) return "At least 2 characters";
+                    if (v.isEmpty) return context.l10n.enterName;
+                    if (v.length < 2) return context.l10n.atLeast2Chars;
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _phone,
-                  label: "Phone",
+                  label: context.l10n.phoneLabel,
                   icon: Icons.call_outlined,
                   keyboardType: TextInputType.phone,
                   validator: (value) {
                     final v = value?.trim() ?? "";
-                    if (v.isEmpty) return "Enter your phone number";
-                    if (!_validPhone(v)) return "Enter a valid phone number";
+                    if (v.isEmpty) return context.l10n.enterYourPhone;
+                    if (!_validPhone(v)) {
+                      return context.l10n.enterValidPhone;
+                    }
                     return null;
                   },
                 ),
@@ -525,7 +600,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 ],
                 const SizedBox(height: 16),
                 _submitButton(context,
-                    label: "Save changes", busy: _busy, onPressed: _save),
+                    label: context.l10n.saveChanges, busy: _busy, onPressed: _save),
               ],
             ),
           ),
@@ -577,11 +652,12 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
     if (!result.isOk) {
       setState(() {
         _busy = false;
-        // The mapped UNAUTHORIZED copy ("Please log in again.") reads wrong
-        // here — this endpoint's 401 specifically means a bad current secret.
+        // The mapped UNAUTHORIZED copy reads wrong here — this endpoint's
+        // 401 specifically means a bad current secret.
         _error = result.code == "UNAUTHORIZED"
-            ? "Your current password is incorrect."
-            : result.message!;
+            ? context.l10n.currentPasswordIncorrect
+            : localizedErrorFor(context.l10n, result.code,
+                serverMessage: result.message);
       });
       return;
     }
@@ -590,8 +666,8 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
     // Re-login flow (Task A design): token stays valid server-side, but the
     // app clears the session so the next login exercises the new secret.
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Password changed. Please log in again."),
+      SnackBar(
+        content: Text(context.l10n.passwordChangedRelogin),
       ),
     );
     await ref.read(authProvider.notifier).logout();
@@ -612,43 +688,46 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _dragHandle(),
+                _dragHandle(context),
                 const SizedBox(height: 8),
-                Text("Change password",
+                Text(context.l10n.changePasswordItem,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 14),
                 _sheetField(
+                  context,
                   controller: _current,
-                  label: "Current password",
+                  label: context.l10n.currentPasswordLabel,
                   icon: Icons.lock_outline_rounded,
                   obscured: true,
                   validator: (value) => (value == null || value.isEmpty)
-                      ? "Enter your current password"
+                      ? context.l10n.enterCurrentPassword
                       : null,
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _next,
-                  label: "New password",
+                  label: context.l10n.newPasswordLabel,
                   icon: Icons.key_outlined,
                   obscured: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter a new password";
+                      return context.l10n.enterNewPassword;
                     }
-                    if (value.length < 8) return "At least 8 characters";
+                    if (value.length < 8) return context.l10n.atLeast8Chars;
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _confirm,
-                  label: "Confirm new password",
+                  label: context.l10n.confirmPasswordLabel,
                   icon: Icons.check_circle_outline_rounded,
                   obscured: true,
                   action: TextInputAction.done,
                   validator: (value) =>
-                      value != _next.text ? "Passwords don't match" : null,
+                      value != _next.text ? context.l10n.passwordsDontMatch : null,
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
@@ -656,7 +735,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
                 ],
                 const SizedBox(height: 16),
                 _submitButton(context,
-                    label: "Update password", busy: _busy, onPressed: _save),
+                    label: context.l10n.updatePassword, busy: _busy, onPressed: _save),
               ],
             ),
           ),
@@ -708,12 +787,13 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = context.l10n;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,11 +801,11 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
           Row(
             children: [
               Expanded(
-                child: Text("Vehicle", style: theme.textTheme.titleMedium),
+                child: Text(s.vehicleTitle, style: theme.textTheme.titleMedium),
               ),
               if (_vehicle != null)
                 IconButton(
-                  tooltip: "Edit vehicle",
+                  tooltip: s.editVehicleTooltip,
                   onPressed: _edit,
                   icon: const Icon(Icons.edit_rounded, size: 20),
                 ),
@@ -741,13 +821,13 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
               ),
             )
           else if (_vehicle != null) ...[
-            _row(theme, "Car model", _vehicle!.carModel),
-            _row(theme, "Plate", _vehicle!.plate),
-            _row(theme, "License", _vehicle!.licenseNo),
-            _row(theme, "Price per km",
-                "\$${_vehicle!.pricePerKm.toStringAsFixed(2)} / km"),
+            _row(theme, s.carModelLabel, _vehicle!.carModel),
+            _row(theme, s.plateLabel, _vehicle!.plate),
+            _row(theme, s.licenseRow, _vehicle!.licenseNo),
+            _row(theme, s.pricePerKmLabel,
+                s.vehiclePriceRow(_vehicle!.pricePerKm.toStringAsFixed(2))),
           ] else
-            Text("No vehicle yet", style: theme.textTheme.bodyMedium),
+            Text(s.noVehicleYet, style: theme.textTheme.bodyMedium),
         ],
       ),
     );
@@ -804,7 +884,7 @@ class _EditVehicleSheetState extends ConsumerState<_EditVehicleSheet> {
     if (!_formKey.currentState!.validate()) return;
     final price = double.tryParse(_price.text.trim());
     if (price == null || price <= 0) {
-      setState(() => _error = "Enter a valid price per km");
+      setState(() => _error = context.l10n.enterValidPricePerKm);
       return;
     }
     setState(() {
@@ -845,50 +925,54 @@ class _EditVehicleSheetState extends ConsumerState<_EditVehicleSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _dragHandle(),
+                _dragHandle(context),
                 const SizedBox(height: 8),
-                Text("Edit vehicle",
+                Text(context.l10n.editVehicleTooltip,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 14),
                 _sheetField(
+                  context,
                   controller: _carModel,
-                  label: "Car model",
+                  label: context.l10n.carModelLabel,
                   icon: Icons.directions_car_rounded,
                   validator: (value) => (value == null ||
                           value.trim().isEmpty)
-                      ? "Enter your car model"
+                      ? context.l10n.enterCarModel
                       : null,
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _plate,
-                  label: "Plate",
+                  label: context.l10n.plateLabel,
                   icon: Icons.pin_rounded,
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                          ? "Enter your plate"
+                          ? context.l10n.enterPlate
                           : null,
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _license,
-                  label: "License",
+                  label: context.l10n.licenseRow,
                   icon: Icons.badge_outlined,
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                          ? "Enter your license"
+                          ? context.l10n.enterLicense
                           : null,
                 ),
                 const SizedBox(height: 12),
                 _sheetField(
+                  context,
                   controller: _price,
-                  label: "Price per km (\$)",
+                  label: context.l10n.pricePerKmDollarLabel,
                   icon: Icons.payments_outlined,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) =>
                       double.tryParse(value?.trim() ?? "") == null
-                          ? "Enter a valid price per km"
+                          ? context.l10n.enterValidPricePerKm
                           : null,
                 ),
                 if (_error != null) ...[
@@ -897,7 +981,7 @@ class _EditVehicleSheetState extends ConsumerState<_EditVehicleSheet> {
                 ],
                 const SizedBox(height: 16),
                 _submitButton(context,
-                    label: "Update vehicle", busy: _busy, onPressed: _save),
+                    label: context.l10n.updateVehicleButton, busy: _busy, onPressed: _save),
               ],
             ),
           ),

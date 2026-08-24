@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/admin_repo.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "../auth/providers.dart" show apiClientProvider;
 import "../account/account_screen.dart" show LogoutButton;
@@ -69,27 +70,28 @@ class _AdminNav extends StatelessWidget {
     final controller = DefaultTabController.maybeOf(context);
     if (controller == null) return const SizedBox.shrink();
 
+    final s = context.l10n;
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) => NavigationBar(
         selectedIndex: controller.index,
         onDestinationSelected: controller.animateTo,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_rounded),
-            label: "Dashboard",
+            icon: const Icon(Icons.dashboard_rounded),
+            label: s.navDashboard,
           ),
           NavigationDestination(
-            icon: Icon(Icons.groups_rounded),
-            label: "Drivers",
+            icon: const Icon(Icons.groups_rounded),
+            label: s.navDrivers,
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: "Rides",
+            icon: const Icon(Icons.receipt_long_rounded),
+            label: s.navRides,
           ),
           NavigationDestination(
-            icon: Icon(Icons.map_rounded),
-            label: "Live Map",
+            icon: const Icon(Icons.map_rounded),
+            label: s.navLiveMap,
           ),
         ],
       ),
@@ -145,7 +147,7 @@ class _Header extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    "ADMIN",
+                    l10nOf(context).adminTag,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: _warnFg,
                       fontWeight: FontWeight.w800,

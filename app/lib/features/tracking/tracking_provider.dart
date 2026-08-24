@@ -3,9 +3,13 @@ import "dart:async";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:latlong2/latlong.dart";
 
+import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/api/ride_repo.dart";
 import "../../core/api/socket_client.dart";
+import "../../core/l10n/l10n.dart" show lookupAppLocalizations;
 import "../../core/models/ride.dart";
+import "../../core/preferences/preferences_provider.dart"
+    show appLocaleProvider;
 import "../booking/booking_provider.dart" show rideRepoProvider;
 import "../driver/driver_provider.dart" show socketClientProvider;
 
@@ -98,7 +102,13 @@ class TrackingNotifier extends AutoDisposeFamilyNotifier<TrackingState, int> {
     final result = await ref.read(rideRepoProvider).getById(id);
     if (_disposed) return;
     if (!result.isOk) {
-      state = TrackingState(error: result.message);
+      state = TrackingState(
+        error: localizedErrorFor(
+          lookupAppLocalizations(ref.watch(appLocaleProvider)),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
     state = TrackingState(ride: result.data);
@@ -148,7 +158,14 @@ class TrackingNotifier extends AutoDisposeFamilyNotifier<TrackingState, int> {
     if (_disposed) return;
 
     if (!result.isOk) {
-      state = state.copyWith(canceling: false, error: result.message);
+      state = state.copyWith(
+        canceling: false,
+        error: localizedErrorFor(
+          lookupAppLocalizations(ref.watch(appLocaleProvider)),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
     state = state.copyWith(canceling: false, ride: result.data);

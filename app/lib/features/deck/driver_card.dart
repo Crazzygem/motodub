@@ -3,6 +3,7 @@ import "dart:ui";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
 
@@ -164,8 +165,8 @@ class DriverCard extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _GlassChip(child: _etaRow(jakarta)),
-            _ratePill(jakarta),
+            _GlassChip(child: _etaRow(jakarta, l10nOf(context))),
+            _ratePill(jakarta, l10nOf(context)),
           ],
         ),
       ],
@@ -191,14 +192,14 @@ class DriverCard extends StatelessWidget {
     );
   }
 
-  Widget _etaRow(TextTheme jakarta) {
+  Widget _etaRow(TextTheme jakarta, AppLocalizations s) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(Icons.access_time_rounded, size: 13, color: Colors.white),
         const SizedBox(width: 4),
         Text(
-          "ETA ${_etaText(driver?.etaMinutes)}",
+          s.etaRow(_etaValue(driver?.etaMinutes, s)),
           style: jakarta.labelMedium?.copyWith(
             fontSize: 12.5,
             color: Colors.white,
@@ -208,7 +209,10 @@ class DriverCard extends StatelessWidget {
     );
   }
 
-  Widget _ratePill(TextTheme jakarta) {
+  Widget _ratePill(TextTheme jakarta, AppLocalizations s) {
+    final rate = driver?.pricePerKm;
+    final valid = rate != null && rate.isFinite && rate >= 0;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -216,7 +220,9 @@ class DriverCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        _rateText(driver?.pricePerKm),
+        valid
+            ? s.pricePerKmShort(rate.toStringAsFixed(2))
+            : "—", // invalid rate renders the bare dash (§5 placeholder)
         style: jakarta.labelMedium?.copyWith(
           fontSize: 12.5,
           fontWeight: FontWeight.w700,
@@ -248,12 +254,8 @@ class DriverCard extends StatelessWidget {
     return parts.isEmpty ? "—" : parts.join(" · ");
   }
 
-  String _etaText(int? eta) => (eta == null || eta <= 0) ? "—" : "$eta min";
-
-  String _rateText(double? rate) =>
-      (rate == null || !rate.isFinite || rate < 0)
-          ? "—"
-          : "${rate.toStringAsFixed(2)} /km";
+  String _etaValue(int? eta, AppLocalizations s) =>
+      (eta == null || eta <= 0) ? "—" : s.etaMinutes(eta);
 }
 
 /// Translucent blurred backing shared by the rating and ETA chips (§5 glass).

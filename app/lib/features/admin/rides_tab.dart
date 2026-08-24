@@ -3,13 +3,16 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/api/socket_client.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
+import "../../core/preferences/preferences_provider.dart" show appLocaleProvider;
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_provider.dart" show rideRepoProvider;
 import "../driver/driver_provider.dart" show socketClientProvider;
 import "../rides/history_screen.dart"
-    show historyStatusColor, historyStatusLabel;
+    show historyStatusColor, localizedStatusLabel;
 import "admin_screen.dart" show adminRepoProvider;
 
 /// Feed filter values — `all` fetches without ?status=.
@@ -81,7 +84,14 @@ class RidesNotifier extends AutoDisposeNotifier<RidesState> {
       state = RidesState(rides: result.data);
       return;
     }
-    state = RidesState(rides: state.rides, error: result.message);
+    state = RidesState(
+      rides: state.rides,
+      error: localizedErrorFor(
+        lookupAppLocalizations(ref.watch(appLocaleProvider)),
+        result.code,
+        serverMessage: result.message,
+      ),
+    );
   }
 
   void _onEvent(RideEvent event) {
@@ -184,7 +194,7 @@ class _RidesTabState extends ConsumerState<RidesTab> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
-                    label: Text(historyStatusLabel(filter)),
+                    label: Text(localizedStatusLabel(context.l10n, filter)),
                     selected: _selected == filter,
                     onSelected: (_) => _applyFilter(filter),
                   ),
@@ -261,10 +271,11 @@ class _EmptyView extends StatelessWidget {
             children: [
               const Text("🛰️", style: TextStyle(fontSize: 52)),
               const SizedBox(height: 12),
-              Text("No rides here", style: theme.textTheme.titleMedium),
+              Text(l10nOf(context).noRidesHereTitle,
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Text(
-                "Nothing matches this filter right now.",
+                l10nOf(context).noRidesFilterHint,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -294,7 +305,8 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Couldn't load the feed", style: theme.textTheme.titleMedium),
+              Text(l10nOf(context).couldntLoadFeed,
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -310,7 +322,7 @@ class _ErrorView extends StatelessWidget {
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("Try again"),
+                label: Text(l10nOf(context).tryAgain),
               ),
             ],
           ),
@@ -334,29 +346,23 @@ class _RideCard extends StatelessWidget {
     return "";
   }
 
-  String _formatDate(DateTime utc) {
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    final d = utc.toLocal();
-    return "${d.day} ${months[d.month - 1]} · "
-        "${d.hour.toString().padLeft(2, "0")}:${d.minute.toString().padLeft(2, "0")}";
-  }
+  String _formatDate(DateTime utc, AppLocalizations s) =>
+      shortDateTime(s, utc.toLocal());
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = context.l10n;
     final color = historyStatusColor(ride.status);
-    final date = ride.createdAt == null ? "" : _formatDate(ride.createdAt!);
+    final date = ride.createdAt == null ? "" : _formatDate(ride.createdAt!, s);
     final party = _partyLine;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +378,7 @@ class _RideCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  historyStatusLabel(ride.status),
+                  localizedStatusLabel(s, ride.status),
                   style: theme.textTheme.labelSmall?.copyWith(color: color),
                 ),
               ),

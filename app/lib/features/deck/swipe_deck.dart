@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_fonts/google_fonts.dart";
 
 import "../../core/api/api_client.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
 import "deck_provider.dart";
@@ -164,14 +165,15 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
     return cards.isEmpty ? null : cards.first;
   }
 
-  String _messageFor(Object error) {
+  String _messageFor(Object error, AppLocalizations s) {
     if (error is ApiException) return error.message;
-    return "Cannot reach server. Is the backend running?";
+    return s.errNetwork;
   }
 
   @override
   Widget build(BuildContext context) {
     final deck = ref.watch(deckProvider);
+    final s = context.l10n;
 
     return Center(
       child: Padding(
@@ -182,7 +184,7 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
             aspectRatio: 0.74,
             child: deck.when(
               loading: () => const _DeckSkeleton(),
-              error: (error, _) => _DeckError(message: _messageFor(error)),
+              error: (error, _) => _DeckError(message: _messageFor(error, s)),
               data: (state) {
                 final cards = state.cards;
                 if (cards.isEmpty) return const _DeckEmpty();
@@ -256,18 +258,20 @@ class _TopCard extends StatelessWidget {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: _StampOverlay(
-                      label: "BOOK",
+                      label: context.l10n.bookStamp,
                       color: AppColors.bookGreen,
                       opacity: offset.dx > 0 ? _overlayOpacity : 0,
+                      tiltLeft: true,
                     ),
                   ),
                 ),
                 Positioned.fill(
                   child: IgnorePointer(
                     child: _StampOverlay(
-                      label: "PASS",
+                      label: context.l10n.passStamp,
                       color: AppColors.passRed,
                       opacity: offset.dx < 0 ? _overlayOpacity : 0,
+                      tiltLeft: false,
                     ),
                   ),
                 ),
@@ -286,11 +290,13 @@ class _StampOverlay extends StatelessWidget {
     required this.label,
     required this.color,
     required this.opacity,
+    required this.tiltLeft,
   });
 
   final String label;
   final Color color;
   final double opacity;
+  final bool tiltLeft;
 
   @override
   Widget build(BuildContext context) {
@@ -300,9 +306,10 @@ class _StampOverlay extends StatelessWidget {
         child: Align(
           alignment: const Alignment(0, -0.62),
           child: Transform.rotate(
-            angle: label == "BOOK" ? -0.17 : 0.17,
+            angle: tiltLeft ? -0.17 : 0.17,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
                 border: Border.all(color: color, width: 4),
                 borderRadius: BorderRadius.circular(12),
@@ -361,7 +368,7 @@ class _DeckSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: context.tokens.inset,
         borderRadius: BorderRadius.circular(28),
       ),
       child: const Center(
@@ -380,33 +387,35 @@ class _DeckEmpty extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.l10n;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text("🛵", style: TextStyle(fontSize: 44)),
         const SizedBox(height: 12),
         Text(
-          "No drivers online",
+          s.noDriversOnlineTitle,
           style: GoogleFonts.sora(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.ink,
+            color: context.tokens.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          "No drivers online right now — pull to refresh",
+          s.noDriversOnlineHint,
           textAlign: TextAlign.center,
           style: Theme.of(context)
               .textTheme
               .bodyMedium
-              ?.copyWith(color: AppColors.muted),
+              ?.copyWith(color: context.tokens.textSecondary),
         ),
         const SizedBox(height: 16),
         TextButton.icon(
           onPressed: () => ref.read(deckProvider.notifier).refresh(),
           icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text("Refresh"),
+          label: Text(s.refresh),
         ),
       ],
     );
@@ -431,13 +440,13 @@ class _DeckError extends ConsumerWidget {
           style: Theme.of(context)
               .textTheme
               .bodyMedium
-              ?.copyWith(color: AppColors.muted),
+              ?.copyWith(color: context.tokens.textSecondary),
         ),
         const SizedBox(height: 16),
         TextButton.icon(
           onPressed: () => ref.read(deckProvider.notifier).refresh(),
           icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text("Retry"),
+          label: Text(context.l10n.retry),
         ),
       ],
     );

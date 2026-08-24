@@ -720,9 +720,11 @@ void main() {
 
     expect(find.byType(Switch), findsOneWidget); // session → /driver
 
-    // Logout lives on the Account tab now.
+    // Logout lives on the Account tab now (below the Task C preferences
+    // card, so bring it into view before asserting).
     await tester.tap(find.text("Account"));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text("Log out"), 300);
     expect(find.widgetWithText(FilledButton, "Log out"), findsOneWidget);
 
     await tester.tap(find.text("Log out"));

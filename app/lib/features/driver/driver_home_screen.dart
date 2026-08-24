@@ -3,14 +3,14 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../core/api/api_client.dart";
-import "../../core/api/error_messages.dart";
 import "../../core/api/ride_repo.dart";
 import "../../core/models/driver.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 import "../account/account_screen.dart";
 import "../rides/history_screen.dart"
-    show HistoryScreen, historyStatusColor, historyStatusLabel;
+    show HistoryScreen, historyStatusColor, localizedStatusLabel;
 import "driver_provider.dart";
 import "driver_summary.dart";
 import "request_card.dart";
@@ -41,18 +41,18 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) => setState(() => _tab = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_rounded),
-            label: "Home",
+            icon: const Icon(Icons.home_rounded),
+            label: context.l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.history_rounded),
-            label: "History",
+            icon: const Icon(Icons.history_rounded),
+            label: context.l10n.navHistory,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_rounded),
-            label: "Account",
+            icon: const Icon(Icons.person_rounded),
+            label: context.l10n.navAccount,
           ),
         ],
       ),
@@ -84,7 +84,7 @@ class _DriverHomeBody extends ConsumerWidget {
           child: CircularProgressIndicator(strokeWidth: 3),
         ),
         error: (error, _) => _BootError(
-          message: _messageFor(error),
+          message: _messageFor(error, context.l10n),
           onRetry: () => ref.read(driverProvider.notifier).refresh(),
         ),
         data: (state) => RefreshIndicator(
@@ -96,7 +96,7 @@ class _DriverHomeBody extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              Text("MotoDub Driver",
+              Text(context.l10n.motoDubDriverTitle,
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 16),
               if (state.vehicle != null) ...[
@@ -152,9 +152,9 @@ class _DriverHomeBody extends ConsumerWidget {
   }
 }
 
-String _messageFor(Object error) {
+String _messageFor(Object error, AppLocalizations s) {
   if (error is ApiException) return error.message;
-  return networkUnreachableMessage;
+  return s.errNetwork;
 }
 
 /// Presence card — grey dot offline → green online; the switch is hidden
@@ -169,12 +169,13 @@ class _StatusCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
+    final s = context.l10n;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Row(
         children: [
@@ -185,13 +186,11 @@ class _StatusCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  state.online ? "You're online" : "You're offline",
+                  state.online ? s.youAreOnline : s.youAreOffline,
                   style: theme.textTheme.titleMedium,
                 ),
                 Text(
-                  state.online
-                      ? "Receiving ride requests"
-                      : "Go online to receive requests",
+                  state.online ? s.receivingRequests : s.goOnlineHint,
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -239,14 +238,15 @@ class _VehicleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final verified = vehicle.verified;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: tokens.inset,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokens.line),
       ),
       child: Row(
         children: [
@@ -257,9 +257,9 @@ class _VehicleCard extends StatelessWidget {
                 Text("${vehicle.carModel} · ${vehicle.plate}",
                     style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
-                Text("${vehicle.pricePerKm.toStringAsFixed(2)} /km",
+                Text(context.l10n.pricePerKmShort(vehicle.pricePerKm.toStringAsFixed(2)),
                     style: theme.textTheme.labelLarge
-                        ?.copyWith(color: AppColors.amberDeep)),
+                        ?.copyWith(color: tokens.accentStrong)),
               ],
             ),
           ),
@@ -270,7 +270,9 @@ class _VehicleCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              verified ? "Verified" : "Pending review",
+              verified
+                  ? context.l10n.verifiedChip
+                  : context.l10n.pendingReviewChip,
               style: theme.textTheme.labelSmall?.copyWith(
                 color:
                     verified ? const Color(0xFF047857) : AppColors.amberDeep,
@@ -339,54 +341,53 @@ class _VehicleSetupFormState extends State<_VehicleSetupForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = context.l10n;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text("Set up your vehicle", style: theme.textTheme.titleMedium),
+            Text(s.setupVehicleTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text("One profile per driver — admin review follows.",
-                style: theme.textTheme.bodyMedium),
+            Text(s.setupVehicleSubtitle, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 14),
             TextFormField(
               controller: _carModel,
-              decoration: const InputDecoration(labelText: "Car model"),
+              decoration: InputDecoration(labelText: s.carModelLabel),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Required" : null,
+                  (v == null || v.trim().isEmpty) ? s.requiredField : null,
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: _plate,
-              decoration: const InputDecoration(labelText: "Plate"),
+              decoration: InputDecoration(labelText: s.plateLabel),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Required" : null,
+                  (v == null || v.trim().isEmpty) ? s.requiredField : null,
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: _license,
-              decoration: const InputDecoration(labelText: "License no"),
+              decoration: InputDecoration(labelText: s.licenseNoLabel),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Required" : null,
+                  (v == null || v.trim().isEmpty) ? s.requiredField : null,
             ),
             const SizedBox(height: 10),
             TextFormField(
               controller: _price,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration:
-                  const InputDecoration(labelText: "Price per km"),
+              decoration: InputDecoration(labelText: s.pricePerKmLabel),
               validator: (v) =>
                   double.tryParse(v?.replaceAll(",", ".") ?? "") == null
-                      ? "Enter a number"
+                      ? s.enterNumber
                       : null,
             ),
             const SizedBox(height: 16),
@@ -406,7 +407,7 @@ class _VehicleSetupFormState extends State<_VehicleSetupForm> {
                       width: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text("Save vehicle"),
+                  : Text(s.saveVehicle),
             ),
           ],
         ),
@@ -453,7 +454,7 @@ class _BootError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Couldn't load your dashboard",
+            Text(context.l10n.couldntLoadDashboard,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(message, textAlign: TextAlign.center,
@@ -466,7 +467,7 @@ class _BootError extends StatelessWidget {
               ),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text("Try again"),
+              label: Text(context.l10n.tryAgain),
             ),
           ],
         ),
@@ -489,7 +490,7 @@ class _EarningsAndActivity extends ConsumerWidget {
     return summary.when(
       loading: () => const _SummarySkeleton(),
       error: (error, _) => _SummaryError(
-        message: _messageFor(error),
+        message: _messageFor(error, context.l10n),
         onRetry: () => ref.invalidate(driverSummaryProvider),
       ),
       data: (data) => Column(
@@ -512,24 +513,24 @@ class _EarningsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final rating = summary.avgRating;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              const Icon(Icons.insights_rounded,
-                  size: 16, color: AppColors.amberDeep),
+              Icon(Icons.insights_rounded, size: 16, color: tokens.accentStrong),
               const SizedBox(width: 8),
-              Text("Today", style: theme.textTheme.titleMedium),
+              Text(l10nOf(context).todayTitle, style: theme.textTheme.titleMedium),
             ],
           ),
           const SizedBox(height: 14),
@@ -538,14 +539,15 @@ class _EarningsCard extends StatelessWidget {
               Expanded(
                 child: _Stat(
                   value: "${summary.completedToday}",
-                  label: "Rides done",
+                  label: l10nOf(context).ridesDoneLabel,
                 ),
               ),
-              Container(width: 1, height: 34, color: AppColors.line),
+              Container(width: 1, height: 34, color: tokens.line),
               Expanded(
                 child: _Stat(
                   value: rating == null ? "—" : rating.toStringAsFixed(1),
-                  label: "Avg rating",
+                  label: l10nOf(context).avgRatingLabel,
+                  isRating: true,
                 ),
               ),
             ],
@@ -557,10 +559,18 @@ class _EarningsCard extends StatelessWidget {
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
+  const _Stat({
+    required this.value,
+    required this.label,
+    this.isRating = false,
+  });
 
   final String value;
   final String label;
+
+  /// Rating stats get the star glyph — keyed off data, not the label
+  /// string, so localization can't silently drop it.
+  final bool isRating;
 
   @override
   Widget build(BuildContext context) {
@@ -571,7 +581,7 @@ class _Stat extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (label == "Avg rating") ...[
+            if (isRating) ...[
               const Icon(Icons.star_rounded, size: 18, color: Color(0xFFFCD34D)),
               const SizedBox(width: 4),
             ],
@@ -580,7 +590,7 @@ class _Stat extends StatelessWidget {
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
-                color: AppColors.amberDeep,
+                color: tokensOf(context).accentStrong,
               ),
             ),
           ],
@@ -604,19 +614,20 @@ class _ActivityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              const Icon(Icons.history_rounded,
-                  size: 16, color: AppColors.amberDeep),
+              Icon(Icons.history_rounded,
+                  size: 16, color: context.tokens.accentStrong),
               const SizedBox(width: 8),
-              Text("Recent activity", style: theme.textTheme.titleMedium),
+              Text(context.l10n.recentActivityTitle,
+                  style: theme.textTheme.titleMedium),
             ],
           ),
           const SizedBox(height: 12),
@@ -641,6 +652,7 @@ class _ActivityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = context.l10n;
     final statusColor = historyStatusColor(ride.status);
 
     return Column(
@@ -655,12 +667,12 @@ class _ActivityRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                historyStatusLabel(ride.status),
+                localizedStatusLabel(s, ride.status),
                 style: theme.textTheme.labelSmall?.copyWith(color: statusColor),
               ),
             ),
             const Spacer(),
-            Text(relativeTimeLabel(ride.createdAt),
+            Text(relativeTimeLabel(ride.createdAt, l10n: s),
                 style: theme.textTheme.labelSmall),
           ],
         ),
@@ -704,11 +716,11 @@ class _ActivityEmpty extends StatelessWidget {
           const Text("🗒️", textAlign: TextAlign.center,
               style: TextStyle(fontSize: 30)),
           const SizedBox(height: 8),
-          Text("No rides yet",
+          Text(context.l10n.activityEmptyTitle,
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            "Your completed trips will show up here.",
+            context.l10n.activityEmptyHint,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),
@@ -729,18 +741,18 @@ class _SummarySkeleton extends StatelessWidget {
         Container(
           height: 108,
           decoration: BoxDecoration(
-            color: AppColors.surface2,
+            color: context.tokens.inset,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.tokens.line),
           ),
         ),
         const SizedBox(height: 14),
         Container(
           height: 150,
           decoration: BoxDecoration(
-            color: AppColors.surface2,
+            color: context.tokens.inset,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.tokens.line),
           ),
         ),
       ],
@@ -782,7 +794,8 @@ class _SummaryError extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: onRetry, child: const Text("Retry")),
+            child: TextButton(
+                onPressed: onRetry, child: Text(l10nOf(context).retry)),
           ),
         ],
       ),

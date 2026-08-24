@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 
 import "../../core/auth/auth_state.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "auth_hero.dart";
 
@@ -51,6 +52,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -75,16 +78,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             decoration: authFieldDecoration(
-                              label: "Email",
+                              context,
+                              label: l10n.emailLabel,
                               icon: Icons.mail_outline_rounded,
                             ),
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
                             validator: (value) {
                               final v = value?.trim() ?? "";
-                              if (v.isEmpty) return "Enter your email";
+                              if (v.isEmpty) return l10n.enterEmail;
                               if (!v.contains("@")) {
-                                return "Enter a valid email";
+                                return l10n.enterValidEmail;
                               }
                               return null;
                             },
@@ -94,12 +98,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _passwordController,
                             obscureText: true,
                             decoration: authFieldDecoration(
-                              label: "Password",
+                              context,
+                              label: l10n.passwordLabel,
                               icon: Icons.lock_outline_rounded,
                             ),
                             validator: (value) =>
                                 (value == null || value.isEmpty)
-                                    ? "Enter your password"
+                                    ? l10n.enterPassword
                                     : null,
                           ),
                           if (_error != null) ...[
@@ -122,7 +127,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   AppColors.amber.withValues(alpha: .4),
                               disabledForegroundColor:
                                   AppColors.ink.withValues(alpha: .5),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -139,12 +145,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2),
                                   )
-                                : const Text("Log in"),
+                                : Text(l10n.logIn),
                           ),
                           const SizedBox(height: 12),
                           TextButton(
                             onPressed: () => context.push("/register"),
-                            child: const Text("No account? Register"),
+                            child: Text(l10n.noAccountRegister),
                           ),
                         ],
                       ),

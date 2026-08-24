@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 
 import "../../core/auth/auth_state.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "auth_hero.dart";
 
@@ -59,8 +60,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Create account")),
+      appBar: AppBar(title: Text(l10n.createAccountTitle)),
       body: Column(
         children: [
           const AuthHero(),
@@ -78,40 +81,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       TextFormField(
                         controller: _nameController,
                         decoration: authFieldDecoration(
-                          label: "Name",
+                          context,
+                          label: l10n.nameLabel,
                           icon: Icons.person_outline_rounded,
                         ),
                         validator: (value) =>
                             ((value?.trim().length ?? 0) < 2)
-                                ? "Enter your name"
+                                ? l10n.enterName
                                 : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _phoneController,
                         decoration: authFieldDecoration(
-                          label: "Phone",
+                          context,
+                          label: l10n.phoneLabel,
                           icon: Icons.phone_outlined,
                         ),
                         keyboardType: TextInputType.phone,
                         validator: (value) =>
                             ((value?.trim().length ?? 0) < 6)
-                                ? "Enter a valid phone number"
+                                ? l10n.enterValidPhone
                                 : null,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _emailController,
                         decoration: authFieldDecoration(
-                          label: "Email",
+                          context,
+                          label: l10n.emailLabel,
                           icon: Icons.mail_outline_rounded,
                         ),
                         keyboardType: TextInputType.emailAddress,
                         autocorrect: false,
                         validator: (value) {
                           final v = value?.trim() ?? "";
-                          if (v.isEmpty) return "Enter an email";
-                          if (!v.contains("@")) return "Enter a valid email";
+                          if (v.isEmpty) return l10n.registerEnterEmail;
+                          if (!v.contains("@")) return l10n.enterValidEmail;
                           return null;
                         },
                       ),
@@ -120,23 +126,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _passwordController,
                         obscureText: true,
                         decoration: authFieldDecoration(
-                          label: "Password (min. 8 characters)",
+                          context,
+                          label: l10n.passwordMinLabel,
                           icon: Icons.lock_outline_rounded,
                         ),
                         validator: (value) =>
                             ((value?.length ?? 0) < 8)
-                                ? "Password must be at least 8 characters"
+                                ? l10n.passwordTooShort
                                 : null,
                       ),
                       const SizedBox(height: 14),
                       SegmentedButton<String>(
-                        segments: const [
+                        segments: [
                           ButtonSegment(
-                              value: "customer", label: Text("Customer")),
+                              value: "customer",
+                              label: Text(l10n.roleCustomer)),
                           ButtonSegment(
-                              value: "driver", label: Text("Driver")),
+                              value: "driver", label: Text(l10n.roleDriver)),
                           ButtonSegment(
-                              value: "admin", label: Text("Admin")),
+                              value: "admin", label: Text(l10n.roleAdmin)),
                         ],
                         selected: {_role},
                         onSelectionChanged: (selection) =>
@@ -179,13 +187,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2),
                               )
-                            : const Text("Create account"),
+                            : Text(l10n.createAccountTitle),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => context.push("/login"),
-                        child: const Text(
-                            "Already have an account? Log in"),
+                        child: Text(l10n.alreadyHaveAccount),
                       ),
                     ],
                   ),

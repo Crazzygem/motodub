@@ -1,14 +1,17 @@
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 
 /// Shared login/register field chrome (§5 fields): surface-2 fill, 16 radius,
 /// leading icon, line border that turns amber on focus.
-InputDecoration authFieldDecoration({
+InputDecoration authFieldDecoration(
+  BuildContext context, {
   required String label,
   required IconData icon,
 }) {
+  final tokens = tokensOf(context);
   OutlineInputBorder border(Color color, [double width = 1]) =>
       OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -19,9 +22,9 @@ InputDecoration authFieldDecoration({
     labelText: label,
     prefixIcon: Icon(icon, size: 20),
     filled: true,
-    fillColor: AppColors.surface2,
-    border: border(AppColors.line),
-    enabledBorder: border(AppColors.line),
+    fillColor: tokens.inset,
+    border: border(tokens.line),
+    enabledBorder: border(tokens.line),
     focusedBorder: border(AppColors.amber, 1.6),
   );
 }
@@ -30,18 +33,17 @@ InputDecoration authFieldDecoration({
 /// canvas, carrying the MOTODUB wordmark (Sora 800, letterspaced like the
 /// deck-card watermark) and a one-line tagline. Purely presentational.
 class AuthHero extends StatelessWidget {
-  const AuthHero({
-    super.key,
-    this.wordmark = "MOTODUB",
-    this.tagline = "Ride smart. Go far.",
-  });
+  const AuthHero({super.key, this.wordmark = "MOTODUB", this.tagline});
 
   final String wordmark;
-  final String tagline;
+
+  /// Null → localized default ("Ride smart. Go far.").
+  final String? tagline;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = tokensOf(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -51,7 +53,7 @@ class AuthHero extends StatelessWidget {
           colors: [
             const Color(0xFFFEF3C7), // warn-bg warm top
             AppColors.amber.withValues(alpha: .16),
-            AppColors.surface,
+            tokens.canvas,
           ],
           stops: const [0.0, 0.55, 1.0],
         ),
@@ -68,12 +70,12 @@ class AuthHero extends StatelessWidget {
               fontSize: 34,
               fontWeight: FontWeight.w800,
               letterSpacing: 4,
-              color: AppColors.ink,
+              color: tokens.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            tagline,
+            tagline ?? context.l10n.appTagline,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

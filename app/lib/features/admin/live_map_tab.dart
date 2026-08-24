@@ -7,6 +7,7 @@ import "package:google_fonts/google_fonts.dart";
 import "package:latlong2/latlong.dart";
 
 import "../../core/api/admin_repo.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_sheet.dart" show kOsmTileUrl;
 import "admin_screen.dart" show adminRepoProvider;
@@ -130,11 +131,11 @@ class _LiveMapTabState extends ConsumerState<LiveMapTab> {
           ],
         ),
         if (pins.isEmpty)
-          const Center(
+          Center(
             child: IgnorePointer(
               child: _OverlayPill(
-                key: Key("live-map-empty"),
-                label: "No online drivers right now",
+                key: const Key("live-map-empty"),
+                label: context.l10n.liveMapEmpty,
               ),
             ),
           ),
@@ -160,16 +161,16 @@ class _OverlayPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tokensOf(context).card,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tokensOf(context).line),
       ),
       child: Text(
         label,
         style: Theme.of(context)
             .textTheme
             .labelLarge
-            ?.copyWith(color: AppColors.muted),
+            ?.copyWith(color: tokensOf(context).textSecondary),
       ),
     );
   }
@@ -192,6 +193,7 @@ class _PinCard extends StatelessWidget {
       if ((driver.plate ?? "").trim().isNotEmpty) driver.plate!.trim(),
     ];
 
+    final tokens = tokensOf(context);
     return Positioned(
       left: 16,
       right: 16,
@@ -199,9 +201,9 @@ class _PinCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: tokens.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: tokens.line),
           boxShadow: const [
             BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4)),
           ],
@@ -226,7 +228,7 @@ class _PinCard extends StatelessWidget {
                     style: GoogleFonts.sora(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                      color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -244,8 +246,8 @@ class _PinCard extends StatelessWidget {
                 style: theme.textTheme.labelMedium),
             IconButton(
               key: const Key("pin-card-close"),
-              icon: const Icon(Icons.close_rounded,
-                  size: 20, color: AppColors.muted),
+              icon: Icon(Icons.close_rounded,
+                  size: 20, color: tokens.textSecondary),
               onPressed: onClose,
             ),
           ],
@@ -271,7 +273,8 @@ class _ErrorPanel extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("Couldn't load drivers", style: theme.textTheme.titleMedium),
+            Text(l10nOf(context).couldntLoadDrivers,
+                style: theme.textTheme.titleMedium),
             const SizedBox(height: 6),
             Text(message,
                 textAlign: TextAlign.center,
@@ -284,7 +287,7 @@ class _ErrorPanel extends StatelessWidget {
               ),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text("Try again"),
+              label: Text(l10nOf(context).tryAgain),
             ),
           ],
         ),

@@ -1,7 +1,12 @@
+import "dart:ui" show Locale;
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/api_client.dart";
+import "../../core/api/error_messages.dart" show localizedErrorFor;
+import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
+import "../../core/preferences/preferences_provider.dart"
+    show appLocaleProvider;
 import "../booking/booking_provider.dart" show rideRepoProvider;
 
 /// Read-only rollup of a driver's own rides (`GET /api/rides/mine`) for the
@@ -70,24 +75,18 @@ class DriverSummary {
 
 /// Compact relative timestamp for the activity rows — "just now", "5m ago",
 /// "2h ago", or a date ("14 Aug"). [now] is injectable for tests.
-String relativeTimeLabel(DateTime? utc, {DateTime? now}) {
+String relativeTimeLabel(DateTime? utc, {DateTime? now, AppLocalizations? l10n}) {
   if (utc == null) return "";
+  final s = l10n ?? lookupAppLocalizations(const Locale("en"));
   final reference = (now ?? DateTime.now()).toLocal();
   final time = utc.toLocal();
   final diff = reference.difference(time);
 
-  if (diff.inMinutes < 1) return "just now";
-  if (diff.inHours < 1) return "${diff.inMinutes}m ago";
-  if (diff.inDays < 1) return "${diff.inHours}h ago";
+  if (diff.inMinutes < 1) return s.justNow;
+  if (diff.inHours < 1) return s.minutesAgo(diff.inMinutes);
+  if (diff.inDays < 1) return s.hoursAgo(diff.inHours);
 
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  if (time.year == reference.year) {
-    return "${time.day} ${months[time.month - 1]}";
-  }
-  return "${time.day} ${months[time.month - 1]} ${time.year}";
+  return shortDate(s, time, withYear: time.year != reference.year);
 }
 
 /// One fetch of the driver's own rides; feeds both the earnings summary
@@ -98,7 +97,11 @@ final driverSummaryProvider = FutureProvider.autoDispose<DriverSummary>(
     if (!result.isOk) {
       throw ApiException(
         result.code ?? "INTERNAL",
-        result.message ?? "Couldn't load your activity.",
+        result.message ??
+            localizedErrorFor(
+              lookupAppLocalizations(ref.watch(appLocaleProvider)),
+              result.code,
+            ),
       );
     }
     return DriverSummary.fromRides(result.data ?? const <Ride>[]);

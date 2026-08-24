@@ -2,6 +2,9 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/admin_repo.dart";
+import "../../core/api/error_messages.dart" show localizedErrorFor;
+import "../../core/l10n/l10n.dart";
+import "../../core/preferences/preferences_provider.dart" show appLocaleProvider;
 import "../../core/theme/app_theme.dart";
 import "admin_screen.dart" show adminRepoProvider;
 
@@ -50,7 +53,14 @@ class DriversNotifier extends AutoDisposeNotifier<DriversState> {
       state = DriversState(drivers: result.data);
       return;
     }
-    state = DriversState(drivers: state.drivers, error: result.message);
+    state = DriversState(
+      drivers: state.drivers,
+      error: localizedErrorFor(
+        lookupAppLocalizations(ref.watch(appLocaleProvider)),
+        result.code,
+        serverMessage: result.message,
+      ),
+    );
   }
 
   /// Modal-confirmed action (PROJECT.md §6: verification and destructive
@@ -63,7 +73,14 @@ class DriversNotifier extends AutoDisposeNotifier<DriversState> {
     if (_disposed) return;
 
     if (!result.isOk) {
-      state = DriversState(drivers: state.drivers, error: result.message);
+      state = DriversState(
+        drivers: state.drivers,
+        error: localizedErrorFor(
+          lookupAppLocalizations(ref.watch(appLocaleProvider)),
+          result.code,
+          serverMessage: result.message,
+        ),
+      );
       return;
     }
 
@@ -156,14 +173,15 @@ class _DriverRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final (chipLabel, chipBg, chipFg) = _statusChip(row);
+    final s = context.l10n;
+    final (chipLabel, chipBg, chipFg) = _statusChip(row, s);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.tokens.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +194,7 @@ class _DriverRow extends ConsumerWidget {
               ),
               _Pill(label: chipLabel, bg: chipBg, fg: chipFg),
               const SizedBox(width: 6),
-              _onlineChip(),
+              _onlineChip(context),
             ],
           ),
           const SizedBox(height: 4),
@@ -215,13 +233,12 @@ class _DriverRow extends ConsumerWidget {
                   onPressed: row.verified
                       ? null
                       : () => _confirmAndRun(context, ref,
-                          title: "Approve driver",
-                          body: "Approve ${row.name}? They will start "
-                              "receiving ride requests.",
-                          confirmLabel: "Approve",
+                          title: s.approveDriverTitle,
+                          body: s.approveDriverBody(row.name),
+                          confirmLabel: s.approveButton,
                           confirmColor: AppColors.ink,
                           verify: true),
-                  child: const Text("Approve"),
+                  child: Text(s.approveButton),
                 ),
               ),
               const SizedBox(width: 8),
@@ -235,13 +252,12 @@ class _DriverRow extends ConsumerWidget {
                   onPressed: !row.active
                       ? null
                       : () => _confirmAndRun(context, ref,
-                          title: "Suspend driver",
-                          body: "Suspend ${row.name}? Their account will be "
-                              "blocked from new bookings.",
-                          confirmLabel: "Suspend",
+                          title: s.suspendDriverTitle,
+                          body: s.suspendDriverBody(row.name),
+                          confirmLabel: s.suspendButton,
                           confirmColor: AppColors.passRed,
                           verify: false),
-                  child: const Text("Suspend"),
+                  child: Text(s.suspendButton),
                 ),
               ),
             ],
@@ -251,16 +267,23 @@ class _DriverRow extends ConsumerWidget {
     );
   }
 
-  Widget _onlineChip() => _Pill(
-        label: row.online ? "Online" : "Offline",
-        bg: row.online ? AppColors.bookGreen.withValues(alpha: .14) : AppColors.line,
-        fg: row.online ? AppColors.bookGreen : AppColors.muted,
-      );
+  Widget _onlineChip(BuildContext context) {
+    final s = l10nOf(context);
+    return _Pill(
+      label: row.online ? s.chipOnline : s.chipOffline,
+      bg: row.online
+          ? AppColors.bookGreen.withValues(alpha: .14)
+          : tokensOf(context).line,
+      fg: row.online
+          ? AppColors.bookGreen
+          : tokensOf(context).textSecondary,
+    );
+  }
 
-  (String, Color, Color) _statusChip(AdminDriver d) {
-    if (!d.active) return ("Suspended", _badBg, _badFg);
-    if (d.verified) return ("Verified", _okBg, _okFg);
-    return ("Pending", _warnBg, _warnFg);
+  (String, Color, Color) _statusChip(AdminDriver d, AppLocalizations s) {
+    if (!d.active) return (s.chipSuspended, _badBg, _badFg);
+    if (d.verified) return (s.verifiedChip, _okBg, _okFg);
+    return (s.chipPending, _warnBg, _warnFg);
   }
 
   /// PROJECT.md §6 / DESIGN.md §5 — the modal IS the gate: no repo call on
@@ -278,7 +301,7 @@ class _DriverRow extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: tokensOf(ctx).card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(title, style: theme.textTheme.titleMedium),
         content: Text(body, style: theme.textTheme.bodyLarge),
@@ -286,7 +309,7 @@ class _DriverRow extends ConsumerWidget {
           TextButton(
             key: const Key("dialog-cancel"),
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text(l10nOf(ctx).cancel),
           ),
           FilledButton(
             key: const Key("dialog-confirm"),
@@ -349,10 +372,11 @@ class _EmptyView extends StatelessWidget {
             children: [
               const Text("🏍️", style: TextStyle(fontSize: 52)),
               const SizedBox(height: 12),
-              Text("No drivers yet", style: theme.textTheme.titleMedium),
+              Text(l10nOf(context).noDriversYetTitle,
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Text(
-                "Driver profiles will show up here once they sign up.",
+                l10nOf(context).noDriversHint,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -382,7 +406,8 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Couldn't load drivers", style: theme.textTheme.titleMedium),
+              Text(l10nOf(context).couldntLoadDrivers,
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -398,7 +423,7 @@ class _ErrorView extends StatelessWidget {
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text("Try again"),
+                label: Text(l10nOf(context).tryAgain),
               ),
             ],
           ),

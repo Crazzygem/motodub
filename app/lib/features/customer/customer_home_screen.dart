@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/auth/auth_state.dart";
+import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 import "../account/account_screen.dart";
 import "../booking/booking_sheet.dart";
@@ -20,6 +21,19 @@ String greetingFor(DateTime now, String? name) {
           : "evening";
   final first = name?.trim().split(RegExp(r"\s+")).first;
   return (first == null || first.isEmpty) ? "Good $part" : "Good $part, $first";
+}
+
+/// Localized twin of [greetingFor] used by the deck header.
+String localizedGreeting(AppLocalizations s, DateTime now, String? name) {
+  final part = now.hour < 12
+      ? s.greetingMorning
+      : now.hour < 18
+          ? s.greetingAfternoon
+          : s.greetingEvening;
+  final first = name?.trim().split(RegExp(r"\s+")).first;
+  return (first == null || first.isEmpty)
+      ? part
+      : s.greetingWithName(part, first);
 }
 
 /// Customer landing shell — the swipe deck IS the home (Task 3.5 wiring
@@ -41,6 +55,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       // Conditional swap, not IndexedStack — only the active tab is mounted,
       // so finders and fetches never see hidden tabs.
@@ -52,18 +68,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) => setState(() => _tab = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.style_rounded),
-            label: "Deck",
+            icon: const Icon(Icons.style_rounded),
+            label: l10n.navDeck,
           ),
           NavigationDestination(
-            icon: Icon(Icons.history_rounded),
-            label: "History",
+            icon: const Icon(Icons.history_rounded),
+            label: l10n.navHistory,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_rounded),
-            label: "Account",
+            icon: const Icon(Icons.person_rounded),
+            label: l10n.navAccount,
           ),
         ],
       ),
@@ -76,9 +92,10 @@ class _DeckTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final mockMode = ref.watch(deckProvider.notifier).mockMode;
     final name = ref.watch(authProvider).valueOrNull?.name;
-    final greeting = greetingFor(DateTime.now(), name);
+    final greeting = localizedGreeting(l10n, DateTime.now(), name);
 
     return SafeArea(
       child: Column(
@@ -91,7 +108,7 @@ class _DeckTab extends ConsumerWidget {
               children: [
                 Text(greeting, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 2),
-                Text("Find your ride below",
+                Text(l10n.findYourRide,
                     style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),
@@ -104,15 +121,15 @@ class _DeckTab extends ConsumerWidget {
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: const [
+              children: [
                 _HintChip(
                   icon: Icons.swipe_right_rounded,
-                  label: "Swipe right to book",
+                  label: l10n.hintSwipeRightBook,
                   tint: AppColors.bookGreen,
                 ),
                 _HintChip(
                   icon: Icons.swipe_left_rounded,
-                  label: "Left to pass",
+                  label: l10n.hintLeftPass,
                   tint: AppColors.passRed,
                 ),
               ],
