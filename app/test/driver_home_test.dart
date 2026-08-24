@@ -67,6 +67,29 @@ Ride _ride(String status) => Ride(
       dropoffAddress: "Airport",
     );
 
+/// Ride with a created_at and an optional received rating — feeds the
+/// earnings/activity rollup (rides/mine).
+Ride _statusRide(
+  int id,
+  String status, {
+  int? rating,
+  required DateTime at,
+}) =>
+    Ride(
+      id: id,
+      customerId: 9,
+      driverId: 40,
+      status: status,
+      pickupLat: 11.5564,
+      pickupLng: 104.9282,
+      pickupAddress: "Central Market",
+      dropoffLat: 11.5449,
+      dropoffLng: 104.8922,
+      dropoffAddress: "Airport",
+      customerRating: rating,
+      createdAt: at,
+    );
+
 ApiClient _deadClient() => ApiClient(dio: Dio());
 
 /// Records every toggle/create call instead of doing HTTP.
@@ -492,6 +515,81 @@ void main() {
     expect(find.text("Honda Dream · PP-1A-2345"), findsOneWidget);
     expect(find.text("1.20 /km"), findsOneWidget);
     expect(find.text("Car model"), findsNothing); // not the setup form
+  });
+
+  testWidgets("earnings summary shows today's completed count and average "
+      "rating from rides/mine", (tester) async {
+    final now = DateTime.now();
+    final rideRepo = _StubRideRepo()
+      ..mineResult = ApiResult.ok([
+        _statusRide(1, "completed", rating: 5, at: now),
+        _statusRide(2, "completed", rating: 4, at: now),
+        // Yesterday's completion — not part of "today", but its rating is.
+        _statusRide(3, "completed",
+            rating: 3, at: now.subtract(const Duration(days: 1))),
+        _statusRide(4, "cancelled", at: now),
+      ]);
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)),
+      rideRepo: rideRepo,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Today"), findsOneWidget);
+    expect(find.text("2"), findsOneWidget); // completed today, not yesterday
+    expect(find.text("4.0"), findsOneWidget); // avg over all 3 ratings
+  });
+
+  testWidgets("activity lists the last five rides with status chips and "
+      "relative time", (tester) async {
+    final now = DateTime.now();
+    final rideRepo = _StubRideRepo()
+      ..mineResult = ApiResult.ok([
+        for (var i = 6; i >= 1; i--)
+          _statusRide(i, "completed",
+              at: now.subtract(Duration(minutes: i * 5))),
+      ]);
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)),
+      rideRepo: rideRepo,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Recent activity"), findsOneWidget);
+    // Newest five of six — the oldest (30m ago) is cut.
+    expect(find.text("Completed"), findsNWidgets(5));
+    expect(find.text("5m ago"), findsOneWidget);
+    expect(find.text("30m ago"), findsNothing);
+    expect(find.textContaining("Central Market"), findsWidgets);
+  });
+
+  testWidgets("shows the empty activity state when there are no rides", (
+    tester,
+  ) async {
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)),
+      rideRepo: _StubRideRepo(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Today"), findsOneWidget);
+    expect(find.text("No rides yet"), findsOneWidget);
+  });
+
+  testWidgets("summary surfaces a mapped error with retry", (tester) async {
+    final rideRepo = _StubRideRepo()
+      ..mineResult = const ApiResult.err("NETWORK", "network gone");
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)),
+      rideRepo: rideRepo,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Retry"), findsOneWidget);
   });
 
   testWidgets("incoming request renders and Decline dispatches the decline "

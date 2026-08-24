@@ -8,7 +8,11 @@ class AuthState {
   final String? token;
   final String? role;
 
-  const AuthState({this.token, this.role});
+  /// Display name carried by the login/register session payload — the
+  /// customer greeting reads its first word.
+  final String? name;
+
+  const AuthState({this.token, this.role, this.name});
 
   bool get isAuthenticated => token != null && role != null;
 }
@@ -16,25 +20,28 @@ class AuthState {
 class TokenStore {
   static const _tokenKey = "auth.token";
   static const _roleKey = "auth.role";
+  static const _nameKey = "auth.name";
 
   Future<AuthState?> load() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
     final role = prefs.getString(_roleKey);
     if (token == null || role == null) return null;
-    return AuthState(token: token, role: role);
+    return AuthState(token: token, role: role, name: prefs.getString(_nameKey));
   }
 
   Future<void> save(AuthState state) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, state.token!);
     await prefs.setString(_roleKey, state.role!);
+    if (state.name != null) await prefs.setString(_nameKey, state.name!);
   }
 
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
+    await prefs.remove(_nameKey);
   }
 }
 

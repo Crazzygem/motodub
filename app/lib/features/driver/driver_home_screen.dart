@@ -6,9 +6,12 @@ import "../../core/api/api_client.dart";
 import "../../core/api/error_messages.dart";
 import "../../core/api/ride_repo.dart";
 import "../../core/models/driver.dart";
+import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 import "../customer/customer_home_screen.dart";
+import "../rides/history_screen.dart" show historyStatusColor, historyStatusLabel;
 import "driver_provider.dart";
+import "driver_summary.dart";
 import "request_card.dart";
 import "ride_controls.dart";
 
@@ -43,8 +46,10 @@ class DriverHomeScreen extends ConsumerWidget {
             onRetry: () => ref.read(driverProvider.notifier).refresh(),
           ),
           data: (state) => RefreshIndicator(
-            onRefresh: () async =>
-                ref.read(driverProvider.notifier).refresh(),
+            onRefresh: () async {
+              ref.invalidate(driverSummaryProvider);
+              ref.read(driverProvider.notifier).refresh();
+            },
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -72,16 +77,6 @@ class DriverHomeScreen extends ConsumerWidget {
                   _ErrorBanner(message: state.error!),
                   const SizedBox(height: 14),
                 ],
-                state.vehicle == null
-                    ? _VehicleSetupForm(submit: (fields) => ref
-                        .read(driverProvider.notifier)
-                        .submitVehicle(
-                          carModel: fields.carModel,
-                          plate: fields.plate,
-                          licenseNo: fields.licenseNo,
-                          pricePerKm: fields.pricePerKm,
-                        ))
-                    : _VehicleCard(vehicle: state.vehicle!),
                 if (state.incoming != null) ...[
                   const SizedBox(height: 14),
                   RequestCard(
@@ -107,6 +102,18 @@ class DriverHomeScreen extends ConsumerWidget {
                         .advance(RideAction.complete),
                   ),
                 ],
+                state.vehicle == null
+                    ? _VehicleSetupForm(submit: (fields) => ref
+                        .read(driverProvider.notifier)
+                        .submitVehicle(
+                          carModel: fields.carModel,
+                          plate: fields.plate,
+                          licenseNo: fields.licenseNo,
+                          pricePerKm: fields.pricePerKm,
+                        ))
+                    : _VehicleCard(vehicle: state.vehicle!),
+                const SizedBox(height: 14),
+                const _EarningsAndActivity(),
               ],
             ),
           ),
@@ -434,6 +441,321 @@ class _BootError extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// --- earnings summary + activity (read-only rollup of rides/mine) -----------
+
+/// Today's stats card plus the last-5-rides activity list, fed by the
+/// [driverSummaryProvider]. Loading/error/empty follow DESIGN §9.
+class _EarningsAndActivity extends ConsumerWidget {
+  const _EarningsAndActivity();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(driverSummaryProvider);
+
+    return summary.when(
+      loading: () => const _SummarySkeleton(),
+      error: (error, _) => _SummaryError(
+        message: _messageFor(error),
+        onRetry: () => ref.invalidate(driverSummaryProvider),
+      ),
+      data: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _EarningsCard(summary: data),
+          const SizedBox(height: 14),
+          _ActivityCard(summary: data),
+        ],
+      ),
+    );
+  }
+}
+
+class _EarningsCard extends StatelessWidget {
+  const _EarningsCard({required this.summary});
+
+  final DriverSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rating = summary.avgRating;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insights_rounded,
+                  size: 16, color: AppColors.amberDeep),
+              const SizedBox(width: 8),
+              Text("Today", style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _Stat(
+                  value: "${summary.completedToday}",
+                  label: "Rides done",
+                ),
+              ),
+              Container(width: 1, height: 34, color: AppColors.line),
+              Expanded(
+                child: _Stat(
+                  value: rating == null ? "—" : rating.toStringAsFixed(1),
+                  label: "Avg rating",
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (label == "Avg rating") ...[
+              const Icon(Icons.star_rounded, size: 18, color: Color(0xFFFCD34D)),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.amberDeep,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: theme.textTheme.labelMedium),
+      ],
+    );
+  }
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.summary});
+
+  final DriverSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_rounded,
+                  size: 16, color: AppColors.amberDeep),
+              const SizedBox(width: 8),
+              Text("Recent activity", style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (summary.recent.isEmpty)
+            const _ActivityEmpty()
+          else
+            for (final (i, ride) in summary.recent.indexed) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _ActivityRow(ride: ride),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({required this.ride});
+
+  final Ride ride;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = historyStatusColor(ride.status);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                historyStatusLabel(ride.status),
+                style: theme.textTheme.labelSmall?.copyWith(color: statusColor),
+              ),
+            ),
+            const Spacer(),
+            Text(relativeTimeLabel(ride.createdAt),
+                style: theme.textTheme.labelSmall),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _routeRow(theme, Icons.trip_origin_rounded, AppColors.bookGreen,
+            ride.pickupAddress),
+        const SizedBox(height: 4),
+        _routeRow(theme, Icons.location_on_rounded, AppColors.muted,
+            ride.dropoffAddress),
+      ],
+    );
+  }
+
+  Widget _routeRow(ThemeData theme, IconData icon, Color color, String address) {
+    return Row(
+      children: [
+        Icon(icon, size: 10, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(address,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActivityEmpty extends StatelessWidget {
+  const _ActivityEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text("🗒️", textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 30)),
+          const SizedBox(height: 8),
+          Text("No rides yet",
+              textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            "Your completed trips will show up here.",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// DESIGN §9 loading state — blocky placeholders, no shimmer.
+class _SummarySkeleton extends StatelessWidget {
+  const _SummarySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          height: 108,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.line),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          height: 150,
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.line),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryError extends StatelessWidget {
+  const _SummaryError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.passRed.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.passRed.withValues(alpha: .35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  color: AppColors.passRed, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(message,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.passRed)),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onRetry, child: const Text("Retry")),
+          ),
+        ],
       ),
     );
   }

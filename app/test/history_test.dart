@@ -94,10 +94,10 @@ void main() {
     expect(find.text("Declined"), findsOneWidget);
 
     // …on DESIGN-token colored pills (completed green · cancelled grey ·
-    // declined red).
+    // declined muted per §10.4).
     expect(_badgeLabelColor(tester, 1), AppColors.bookGreen);
     expect(_badgeLabelColor(tester, 2), AppColors.muted);
-    expect(_badgeLabelColor(tester, 3), AppColors.passRed);
+    expect(_badgeLabelColor(tester, 3), AppColors.muted);
 
     // Opposite-party names render.
     expect(find.textContaining("Dara"), findsWidgets);

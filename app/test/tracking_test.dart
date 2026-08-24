@@ -12,6 +12,8 @@ import "package:motodub/features/booking/booking_provider.dart"
     show rideRepoProvider;
 import "package:motodub/features/driver/driver_provider.dart"
     show socketClientProvider;
+import "package:motodub/features/driver/request_card.dart"
+    show etaMinutesForKm, haversineKm;
 import "package:motodub/features/tracking/tracking_provider.dart";
 import "package:motodub/features/tracking/tracking_screen.dart";
 
@@ -351,6 +353,24 @@ void main() {
       expect(find.text("Toyota Highlander SUV · PP-1A-2345"),
           findsOneWidget);
       expect(find.text("Accepted"), findsOneWidget);
+
+      // Real distance + ETA row, computed from the ride's coords.
+      expect(find.textContaining("min ETA"), findsOneWidget);
+      expect(find.textContaining("km ·"), findsOneWidget);
+    });
+
+    testWidgets("distance and ETA helpers mirror the server's rule",
+        (tester) async {
+      // Server twin: etaMinutes(km) = ceil(km / 25).
+      expect(etaMinutesForKm(0), 0);
+      expect(etaMinutesForKm(25), 1);
+      expect(etaMinutesForKm(25.1), 2);
+      expect(etaMinutesForKm(50), 2);
+
+      // Central Market → Airport: a sane Phnom-Penh trip (~4 km).
+      final km = haversineKm(11.5564, 104.9282, 11.5449, 104.8922);
+      expect(km, greaterThan(3.0));
+      expect(km, lessThan(5.0));
     });
 
     testWidgets("live heartbeats move the driver pin onto the map",

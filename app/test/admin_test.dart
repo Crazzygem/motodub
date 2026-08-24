@@ -237,6 +237,12 @@ void main() {
       expect(find.text("Online drivers"), findsOneWidget);
       expect(find.text("Completed today"), findsOneWidget);
       expect(find.text("Avg rating"), findsOneWidget);
+
+      // Per-KPI icon + tint (direction_car / wifi / check_circle / star).
+      expect(find.byIcon(Icons.directions_car_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.wifi_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
     });
 
     testWidgets("surfaces a mapped error with working retry", (tester) async {

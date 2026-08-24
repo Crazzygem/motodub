@@ -160,10 +160,11 @@ class DriverCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             _GlassChip(child: _etaRow(jakarta)),
-            const SizedBox(width: 8),
             _ratePill(jakarta),
           ],
         ),

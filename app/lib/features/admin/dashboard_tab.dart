@@ -59,14 +59,31 @@ class _Grid extends StatelessWidget {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.45,
+      childAspectRatio: 1.35,
       children: [
-        _KpiCard(label: "Live rides", value: "${stats.requestedNow}"),
-        _KpiCard(label: "Online drivers", value: "${stats.onlineDrivers}"),
-        _KpiCard(label: "Completed today", value: "${stats.completedToday}"),
+        _KpiCard(
+          label: "Live rides",
+          value: "${stats.requestedNow}",
+          icon: Icons.directions_car_rounded,
+          tint: AppColors.amber,
+        ),
+        _KpiCard(
+          label: "Online drivers",
+          value: "${stats.onlineDrivers}",
+          icon: Icons.wifi_rounded,
+          tint: AppColors.bookGreen,
+        ),
+        _KpiCard(
+          label: "Completed today",
+          value: "${stats.completedToday}",
+          icon: Icons.check_circle_rounded,
+          tint: AppColors.amberDeep,
+        ),
         _KpiCard(
           label: "Avg rating",
           value: stats.avgRating?.toStringAsFixed(2) ?? "—",
+          icon: Icons.star_rounded,
+          tint: const Color(0xFFFCD34D), // star amber, DESIGN §5
         ),
       ],
     );
@@ -74,10 +91,17 @@ class _Grid extends StatelessWidget {
 }
 
 class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.label, required this.value});
+  const _KpiCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.tint,
+  });
 
   final String label;
   final String value;
+  final IconData icon;
+  final Color tint;
 
   @override
   Widget build(BuildContext context) {
@@ -90,19 +114,39 @@ class _KpiCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.line),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.amberDeep,
+          Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 16, color: tint),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: theme.textTheme.labelMedium),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.amberDeep,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(label, style: theme.textTheme.labelMedium),
+              ],
+            ),
+          ),
         ],
       ),
     );

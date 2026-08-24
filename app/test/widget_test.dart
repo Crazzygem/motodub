@@ -13,8 +13,9 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: MotoDubApp()));
     await pump(tester);
 
-    expect(find.text("MotoDub"), findsOneWidget);
-    expect(find.text("Sign in to book a ride"), findsOneWidget);
+    // The redesigned hero band: wordmark + tagline.
+    expect(find.text("MOTODUB"), findsOneWidget);
+    expect(find.text("Ride smart. Go far."), findsOneWidget);
     expect(find.text("Log in"), findsOneWidget);
   });
 

@@ -51,40 +51,73 @@ class _SpyAuth extends AuthNotifier {
   }
 }
 
+const _session = AuthState(
+  token: "jwt",
+  role: "customer",
+  name: "Dara Sok",
+);
+
+Future<void> _pump(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.reset);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        deckProvider.overrideWith(() => _FakeDeck([_dara])),
+        authProvider.overrideWith(() => _SpyAuth(_session)),
+      ],
+      child: const MaterialApp(home: CustomerHomeScreen()),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets("customer home renders the SwipeDeck as its landing page",
       (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          deckProvider.overrideWith(() => _FakeDeck([
-                const Driver(
-                  id: 1,
-                  userId: 10,
-                  carModel: "Honda Dream",
-                  plate: "PP-1A-2345",
-                  licenseNo: "L-0001",
-                  verified: true,
-                  online: true,
-                  pricePerKm: 1.20,
-                  name: "Dara Sok",
-                  rating: 4.8,
-                  etaMinutes: 4,
-                ),
-              ])),
-        ],
-        child: const MaterialApp(home: CustomerHomeScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pump(tester);
 
     expect(find.byType(SwipeDeck), findsOneWidget);
     expect(find.text("Dara Sok"), findsOneWidget);
   });
 
+  testWidgets("greets the session's first name and shows the deck hints",
+      (tester) async {
+    await _pump(tester);
+
+    // Time-aware greeting carries the first word of the session name and
+    // the subtitle sits under it.
+    final greeting = tester
+        .widget<Text>(find.textContaining("Good "))
+        .data!;
+    expect(greeting, startsWith("Good "));
+    expect(greeting, endsWith(", Dara"));
+    expect(find.text("Find your ride below"), findsOneWidget);
+
+    // Gesture hint chips (green right / red left) under the deck header.
+    expect(find.text("Swipe right to book"), findsOneWidget);
+    expect(find.text("Left to pass"), findsOneWidget);
+    expect(find.byIcon(Icons.swipe_right_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.swipe_left_rounded), findsOneWidget);
+  });
+
+  testWidgets("greetingFor picks the right time of day and first name",
+      (tester) async {
+    expect(greetingFor(DateTime(2026, 8, 23, 9), "Dara Sok"),
+        "Good morning, Dara");
+    expect(greetingFor(DateTime(2026, 8, 23, 14), "Dara Sok"),
+        "Good afternoon, Dara");
+    expect(greetingFor(DateTime(2026, 8, 23, 20), "Dara Sok"),
+        "Good evening, Dara");
+    expect(greetingFor(DateTime(2026, 8, 23, 9), null), "Good morning");
+    expect(greetingFor(DateTime(2026, 8, 23, 9), "  "), "Good morning");
+  });
+
   testWidgets("logout dispatches the auth logout and lands on the login "
       "screen through the router redirect", (tester) async {
-    final auth = _SpyAuth(const AuthState(token: "jwt", role: "customer"));
+    final auth = _SpyAuth(_session);
     final container = ProviderContainer(overrides: [
       deckProvider.overrideWith(() => _FakeDeck([_dara])),
       authProvider.overrideWith(() => auth),

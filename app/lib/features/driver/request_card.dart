@@ -17,6 +17,9 @@ double haversineKm(double lat1, double lng1, double lat2, double lng2) {
   return 2 * r * math.asin(math.sqrt(a.toDouble()));
 }
 
+/// Client twin of the server's `etaMinutes(distanceKm)` — same 25 km/h rule.
+int etaMinutesForKm(double km) => (km / 25).ceil();
+
 /// The incoming ride: who wants to go where, how far, and the two verdict
 /// buttons. DESIGN.md §5 — avatar + name/rating, trip-km pill, green-dot
 /// pickup rail → ink-dot dropoff, Accept/Decline 50/50.

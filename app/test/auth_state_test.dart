@@ -28,4 +28,22 @@ void main() {
     addTearDown(restarted.dispose);
     expect((await restarted.read(authProvider.future)).isAuthenticated, isFalse);
   });
+
+  test("the session name persists across restarts", () async {
+    SharedPreferences.setMockInitialValues({});
+
+    // Drive a save + rehydrate through the real TokenStore.
+    await TokenStore()
+        .save(const AuthState(token: "jwt", role: "customer", name: "Dara"));
+    final loaded = await TokenStore().load();
+    expect(loaded?.name, "Dara");
+    expect(loaded?.role, "customer");
+
+    // Logout clears the name too.
+    await TokenStore().clear();
+    final after = await TokenStore().load();
+    expect(after, isNull);
+    expect((await SharedPreferences.getInstance()).getString("auth.name"),
+        isNull);
+  });
 }

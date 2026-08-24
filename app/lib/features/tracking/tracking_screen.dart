@@ -8,6 +8,7 @@ import "package:latlong2/latlong.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_sheet.dart" show kOsmTileUrl;
+import "../driver/request_card.dart" show etaMinutesForKm, haversineKm;
 import "tracking_provider.dart";
 
 /// Live tracking (Task 5.1): flutter_map with pickup/dropoff pins, dashed
@@ -389,7 +390,9 @@ class _TripBlock extends StatelessWidget {
 // --- driver card -----------------------------------------------------------------
 
 /// Car · plate · phone from the GET /api/rides/{id} driver snapshot —
-/// appears once the ride is accepted (Task 5.1 step 3).
+/// appears once the ride is accepted (Task 5.1 step 3). Below it, a real
+/// distance + ETA row computed client-side from the pickup/dropoff coords
+/// (twin of the server's 25 km/h rule).
 class _DriverCard extends StatelessWidget {
   const _DriverCard({required this.ride});
 
@@ -403,6 +406,13 @@ class _DriverCard extends StatelessWidget {
         ride.driverCarModel!.trim(),
       if ((ride.driverPlate ?? "").trim().isNotEmpty) ride.driverPlate!.trim(),
     ];
+    final km = haversineKm(
+      ride.pickupLat,
+      ride.pickupLng,
+      ride.dropoffLat,
+      ride.dropoffLng,
+    );
+    final etaMin = etaMinutesForKm(km);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -411,51 +421,68 @@ class _DriverCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.line),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.surface,
-            child: const Icon(Icons.local_taxi_rounded,
-                color: AppColors.muted, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (ride.driverName?.trim().isEmpty ?? true)
-                      ? "Your driver"
-                      : ride.driverName!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.sora(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.surface,
+                child: const Icon(Icons.local_taxi_rounded,
+                    color: AppColors.muted, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (ride.driverName?.trim().isEmpty ?? true)
+                          ? "Your driver"
+                          : ride.driverName!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.sora(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      carParts.isEmpty ? "—" : carParts.join(" · "),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: jakarta.bodyMedium,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  carParts.isEmpty ? "—" : carParts.join(" · "),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: jakarta.bodyMedium,
+              ),
+              const SizedBox(width: 8),
+              if ((ride.driverPhone ?? "").isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.call_rounded,
+                        size: 15, color: AppColors.amberDeep),
+                    const SizedBox(width: 4),
+                    Text(ride.driverPhone!, style: jakarta.labelMedium),
+                  ],
                 ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          if ((ride.driverPhone ?? "").isNotEmpty)
-            Row(
-              children: [
-                const Icon(Icons.call_rounded,
-                    size: 15, color: AppColors.amberDeep),
-                const SizedBox(width: 4),
-                Text(ride.driverPhone!, style: jakarta.labelMedium),
-              ],
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.route_rounded,
+                  size: 15, color: AppColors.amberDeep),
+              const SizedBox(width: 6),
+              Text(
+                "${km.toStringAsFixed(1)} km · $etaMin min ETA",
+                style: jakarta.labelMedium,
+              ),
+            ],
+          ),
         ],
       ),
     );

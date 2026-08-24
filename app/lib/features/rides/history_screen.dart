@@ -7,11 +7,11 @@ import "../../core/theme/app_theme.dart";
 import "../booking/booking_provider.dart" show rideRepoProvider;
 
 // DESIGN.md §10.4 history status chips: completed green · cancelled grey ·
-// declined red; anything still moving keeps the amber brand.
+// declined grey (muted) · anything still moving keeps the amber brand.
 const Map<String, Color> _statusColors = {
   "completed": AppColors.bookGreen,
   "cancelled": AppColors.muted,
-  "declined": AppColors.passRed,
+  "declined": AppColors.muted,
   "requested": AppColors.amberDeep,
   "accepted": AppColors.amberDeep,
   "en_route": AppColors.amberDeep,

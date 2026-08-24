@@ -5,10 +5,11 @@ import "api_client.dart";
 class AuthSession {
   final String token;
   final String role;
+  final String? name;
 
-  const AuthSession({required this.token, required this.role});
+  const AuthSession({required this.token, required this.role, this.name});
 
-  AuthState get state => AuthState(token: token, role: role);
+  AuthState get state => AuthState(token: token, role: role, name: name);
 
   static AuthSession fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -16,6 +17,7 @@ class AuthSession {
     return AuthSession(
       token: map["token"] as String,
       role: user["role"] as String,
+      name: user["name"] as String?,
     );
   }
 }
