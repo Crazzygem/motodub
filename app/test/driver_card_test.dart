@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:motodub/core/models/driver.dart";
+import "package:motodub/core/theme/app_theme.dart";
 import "package:motodub/features/deck/deck_provider.dart";
 import "package:motodub/features/deck/driver_card.dart";
 import "package:motodub/features/deck/swipe_deck.dart";
@@ -39,6 +40,46 @@ Driver _driverWithVehiclePhoto(String? vehiclePhoto) => Driver(
       etaMinutes: 4,
       vehiclePhoto: vehiclePhoto,
     );
+
+Driver _driverWithGallery(List<String> photos) => Driver(
+      id: 1,
+      userId: 11,
+      carModel: "Honda Dream",
+      plate: "1AB-2345",
+      licenseNo: "L-0001",
+      verified: true,
+      online: true,
+      pricePerKm: 1.20,
+      name: "Dara Sok",
+      rating: 4.8,
+      distanceKm: 1.4,
+      etaMinutes: 4,
+      vehiclePhotos: photos,
+    );
+
+/// Taps the hero photo in horizontal thirds — tinder pager contract:
+/// -1 = left zone (previous), 0 = middle (viewer), 1 = right zone (next).
+Future<void> _tapHeroZone(WidgetTester tester, int zone) async {
+  final finder = find.byKey(const Key("driver-card-photo"));
+  final width = tester.getSize(finder).width;
+  await tester.tapAt(
+    tester.getCenter(finder) + Offset(zone * width / 3, 0),
+  );
+}
+
+Container _dot(WidgetTester tester, int index) =>
+    tester.widget<Container>(find.byKey(Key("driver-card-dot-$index")));
+
+/// Rendered pill width without the dot's symmetric margin (16 active / 6).
+double _dotWidth(WidgetTester tester, int index) => tester.getSize(
+      find.descendant(
+        of: find.byKey(Key("driver-card-dot-$index")),
+        matching: find.byType(DecoratedBox),
+      ),
+    ).width;
+
+Color _dotColor(WidgetTester tester, int index) =>
+    (_dot(tester, index).decoration! as BoxDecoration).color!;
 
 /// Builds the card and flushes ONE frame — enough for the widget tree to
 /// exist, but not long enough for the (unreachable in tests) photo requests
@@ -255,6 +296,81 @@ void main() {
     expect(find.byType(PhotoViewer), findsNothing);
   });
 
+  testWidgets("side tap zones page a multi-photo hero and move the active dot",
+      (tester) async {
+    await _pumpCardOnce(
+      tester,
+      _driverWithGallery(
+        ["/uploads/one.png", "/uploads/two.png", "/uploads/three.png"],
+      ),
+    );
+
+    expect(_heroImage(tester)!.url, endsWith("one.png"));
+    expect(find.byKey(const Key("driver-card-dots")), findsOneWidget);
+    expect(_dotColor(tester, 0), AppColors.amber); // photo 1 starts active
+    expect(_dotWidth(tester, 0), 16); // active dot is the wider one
+    expect(_dotWidth(tester, 1), 6);
+    expect(_dotColor(tester, 1), isNot(AppColors.amber));
+
+    await _tapHeroZone(tester, 1); // right third -> next photo
+    await tester.pump(); // start the crossfade
+    await tester.pump(const Duration(milliseconds: 300)); // settle + drop old
+
+    expect(_heroImage(tester)!.url, endsWith("two.png"));
+    expect(_dotColor(tester, 1), AppColors.amber); // active dot followed
+    expect(_dotWidth(tester, 1), 16);
+    expect(_dotColor(tester, 0), isNot(AppColors.amber));
+
+    await _tapHeroZone(tester, -1); // left third -> previous photo
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(_heroImage(tester)!.url, endsWith("one.png"));
+  });
+
+  testWidgets("single-photo heroes: side taps do nothing, middle opens viewer",
+      (tester) async {
+    await _pumpCardOnce(tester, _driverWithVehiclePhoto("/uploads/solo.png"));
+
+    expect(find.byKey(const Key("driver-card-dots")), findsNothing);
+
+    await _tapHeroZone(tester, 1); // right zone
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(PhotoViewer), findsNothing); // next is a no-op
+    expect(_heroImage(tester)!.url, endsWith("solo.png"));
+
+    await _tapHeroZone(tester, -1); // left zone
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(PhotoViewer), findsNothing); // prev is a no-op
+    expect(_heroImage(tester)!.url, endsWith("solo.png"));
+
+    await _tapHeroZone(tester, 0); // middle zone
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(PhotoViewer), findsOneWidget);
+  });
+
+  testWidgets("middle tap on a paged hero opens the viewer at the CURRENT photo",
+      (tester) async {
+    await _pumpCardOnce(
+      tester,
+      _driverWithGallery(["/uploads/one.png", "/uploads/two.png"]),
+    );
+
+    await _tapHeroZone(tester, 1); // page to photo 2 first
+    await tester.pump(const Duration(milliseconds: 300));
+    await _tapHeroZone(tester, 0);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      tester.widget<PhotoViewer>(find.byType(PhotoViewer)).url,
+      "http://10.0.2.2:3000/uploads/two.png",
+    );
+  });
+
   testWidgets("deck swipe still books after opening and dismissing the viewer",
       (tester) async {
     Driver? booked;
@@ -283,6 +399,36 @@ void main() {
     expect(find.byType(PhotoViewer), findsNothing);
 
     // The fling STARTS on the photo — the tap detector must not swallow it.
+    await tester.fling(
+      find.byKey(const Key("driver-card-photo")),
+      const Offset(500, 0),
+      3000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(booked?.id, 1);
+  });
+
+  testWidgets("a deck fling starting on a multi-photo hero still pops the card",
+      (tester) async {
+    Driver? booked;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deckProvider.overrideWith(() => _FakeDeck([
+                _driverWithGallery(["/uploads/one.png", "/uploads/two.png"]),
+              ])),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SwipeDeck(onSwipedRight: (d) => booked = d),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The fling STARTS on the paged hero — the pager must not swallow it.
     await tester.fling(
       find.byKey(const Key("driver-card-photo")),
       const Offset(500, 0),

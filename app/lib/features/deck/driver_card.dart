@@ -23,10 +23,27 @@ const List<double> _saturation90 = [
 /// The deck showpiece — DESIGN.md §5 "Driver swipe card": full-bleed photo,
 /// gradient shade, watermark, then name/rating, car line, ETA + asking rate.
 /// Empty/invalid data degrades to placeholders instead of crashing.
-class DriverCard extends StatelessWidget {
+class DriverCard extends StatefulWidget {
   const DriverCard({super.key, required this.driver});
 
   final Driver? driver;
+
+  @override
+  State<DriverCard> createState() => _DriverCardState();
+}
+
+class _DriverCardState extends State<DriverCard> {
+  /// Which gallery photo the hero currently shows (tinder-style pager).
+  int _photoIndex = 0;
+
+  Driver? get driver => widget.driver;
+
+  @override
+  void didUpdateWidget(DriverCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A different driver slid into this slot — restart at its cover photo.
+    if (oldWidget.driver != widget.driver) _photoIndex = 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,34 +88,105 @@ class DriverCard extends StatelessWidget {
 
   // --- layers -------------------------------------------------------------
 
-  /// Card hero: the driver's vehicle photo when one was uploaded. Relative
-  /// `/uploads/…` URLs resolve against the API base; anything that isn't a
-  /// usable URL — or fails to load — degrades silently to the taxi icon.
-  /// With a usable photo the hero is a tap target for the full-screen viewer;
-  /// the deck keeps every drag (tap never competes with its pan).
+  /// Card hero: tinder-style pager over the driver's photo gallery
+  /// ([Driver.effectiveVehiclePhotos], legacy `vehicle_photo` cover included).
+  /// Relative `/uploads/…` URLs resolve against the API base; entries that
+  /// aren't usable URLs — or photos that fail to load — degrade silently to
+  /// the taxi icon. With at least one usable photo the hero is the tap target:
+  /// left/right thirds page through the gallery (wrap-around), the middle
+  /// third opens the full-screen viewer at the current photo. Tap-only —
+  /// the deck keeps every drag (tap never competes with its pan). A single
+  /// photo disables paging but still opens the viewer; no dots then either.
   Widget _photo(BuildContext context) {
-    final raw = driver?.vehiclePhoto?.trim();
-    if (raw == null || raw.isEmpty) return _photoFallback();
-    // Relative server paths start with "/"; anything else must carry a
-    // real http(s) scheme or it's broken.
-    if (!raw.startsWith("/")) {
-      final uri = Uri.tryParse(raw);
-      if (uri == null || (uri.scheme != "http" && uri.scheme != "https")) {
-        return _photoFallback();
-      }
-    }
-    return GestureDetector(
-      key: const Key("driver-card-photo"),
-      behavior: HitTestBehavior.opaque,
-      onTap: () => showPhotoViewer(context, resolveUploadUrl(raw)),
-      child: ColorFiltered(
-        colorFilter: const ColorFilter.matrix(_saturation90),
-        child: Image.network(
-          resolveUploadUrl(raw),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _photoFallback(),
+    final photos = _galleryPhotos;
+    if (photos.isEmpty) return _photoFallback();
+    final index = _photoIndex.clamp(0, photos.length - 1).toInt();
+    return LayoutBuilder(
+      builder: (context, box) => GestureDetector(
+        key: const Key("driver-card-photo"),
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) {
+          final dx = details.localPosition.dx;
+          if (dx < box.maxWidth / 3) {
+            _pageBy(-1, photos.length);
+          } else if (dx > box.maxWidth * 2 / 3) {
+            _pageBy(1, photos.length);
+          } else {
+            showPhotoViewer(context, resolveUploadUrl(photos[index]));
+          }
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              child: ColorFiltered(
+                key: ValueKey(photos[index]),
+                colorFilter: const ColorFilter.matrix(_saturation90),
+                child: Image.network(
+                  resolveUploadUrl(photos[index]),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _photoFallback(),
+                ),
+              ),
+            ),
+            if (photos.length > 1)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 10,
+                // Dots are chrome, never a tap target.
+                child: IgnorePointer(
+                  child: _dots(active: index, count: photos.length),
+                ),
+              ),
+          ],
         ),
       ),
+    );
+  }
+
+  /// Gallery the pager shows: server array or the legacy cover, filtered to
+  /// usable URLs — broken entries never become tap targets or viewer sources.
+  List<String> get _galleryPhotos {
+    final all = driver?.effectiveVehiclePhotos ?? const <String>[];
+    return [
+      for (final raw in all)
+        if (_usablePhoto(raw)) raw,
+    ];
+  }
+
+  bool _usablePhoto(String raw) {
+    if (raw.startsWith("/")) return true; // relative server path
+    final uri = Uri.tryParse(raw);
+    return uri != null && (uri.scheme == "http" || uri.scheme == "https");
+  }
+
+  void _pageBy(int delta, int count) {
+    if (count <= 1) return; // single photo: prev/next are no-ops
+    setState(() => _photoIndex = (_photoIndex + delta + count) % count);
+  }
+
+  /// Pager position dots: small white circles, active one amber and wider.
+  Widget _dots({required int active, required int count}) {
+    return Row(
+      key: const Key("driver-card-dots"),
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < count; i++)
+          Container(
+            key: Key("driver-card-dot-$i"),
+            width: i == active ? 16 : 6,
+            height: 6,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            decoration: BoxDecoration(
+              color: i == active
+                  ? AppColors.amber
+                  : Colors.white.withValues(alpha: .65),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+      ],
     );
   }
 
