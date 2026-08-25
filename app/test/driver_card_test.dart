@@ -1,7 +1,11 @@
 import "package:flutter/material.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:motodub/core/models/driver.dart";
+import "package:motodub/features/deck/deck_provider.dart";
 import "package:motodub/features/deck/driver_card.dart";
+import "package:motodub/features/deck/swipe_deck.dart";
+import "package:motodub/features/shared/photo_viewer.dart";
 
 Driver _sampleDriver() => const Driver(
       id: 1,
@@ -217,4 +221,87 @@ void main() {
     expect(find.byKey(const Key("driver-card-avatar")), findsOneWidget);
     expect(find.text("DS"), findsOneWidget); // initials fallback
   });
+
+  testWidgets("tapping the hero photo opens the fullscreen viewer",
+      (tester) async {
+    await _pumpCardOnce(tester, _driverWithVehiclePhoto("/uploads/bike.png"));
+
+    await tester.tap(find.byKey(const Key("driver-card-photo")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PhotoViewer), findsOneWidget);
+    // Watermark stays card chrome — the viewer shows the raw photo.
+    expect(find.text("MOTODUB"), findsOneWidget);
+  });
+
+  testWidgets("a card without a vehicle photo has no photo tap target",
+      (tester) async {
+    await _pumpCardOnce(tester, _driverWithVehiclePhoto(null));
+
+    expect(find.byKey(const Key("driver-card-photo")), findsNothing);
+    await tester.tap(find.byIcon(Icons.local_taxi_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PhotoViewer), findsNothing);
+  });
+
+  testWidgets("a broken vehicle_photo URL has no photo tap target either",
+      (tester) async {
+    await _pumpCard(tester, _driverWithVehiclePhoto("not-a-url"));
+
+    expect(find.byKey(const Key("driver-card-photo")), findsNothing);
+    expect(find.byType(PhotoViewer), findsNothing);
+  });
+
+  testWidgets("deck swipe still books after opening and dismissing the viewer",
+      (tester) async {
+    Driver? booked;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deckProvider.overrideWith(() => _FakeDeck([
+                _driverWithVehiclePhoto("/uploads/bike.png"),
+              ])),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SwipeDeck(onSwipedRight: (d) => booked = d),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key("driver-card-photo")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byKey(const Key("photo-viewer-close")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(PhotoViewer), findsNothing);
+
+    // The fling STARTS on the photo — the tap detector must not swallow it.
+    await tester.fling(
+      find.byKey(const Key("driver-card-photo")),
+      const Offset(500, 0),
+      3000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(booked?.id, 1);
+  });
+}
+
+/// Bypasses HTTP for the deck-regression harness (same shape as
+/// swipe_deck_test's fake).
+class _FakeDeck extends DeckNotifier {
+  _FakeDeck(this.cards);
+
+  final List<Driver> cards;
+
+  @override
+  Future<DeckState> build() async =>
+      DeckState(cards: List.of(cards), swipedLeft: const <int>{});
 }

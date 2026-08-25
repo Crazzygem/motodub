@@ -7,6 +7,7 @@ import "../../core/api/api_client.dart" show resolveUploadUrl;
 import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
+import "../shared/photo_viewer.dart";
 
 /// Rating-chip star — DESIGN.md §5 pins this exact amber variant.
 const Color _starAmber = Color(0xFFFCD34D);
@@ -55,8 +56,9 @@ class DriverCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _photo(),
-              Positioned.fill(child: _shade()),
+              _photo(context),
+              // Click-through: the shade must not eat the photo's tap target.
+              Positioned.fill(child: IgnorePointer(child: _shade())),
               Positioned(top: 18, left: 18, child: _watermark()),
               Positioned(top: 14, right: 14, child: _avatarCircle()),
               Positioned(left: 18, right: 18, bottom: 18, child: _infoBlock(context)),
@@ -72,7 +74,9 @@ class DriverCard extends StatelessWidget {
   /// Card hero: the driver's vehicle photo when one was uploaded. Relative
   /// `/uploads/…` URLs resolve against the API base; anything that isn't a
   /// usable URL — or fails to load — degrades silently to the taxi icon.
-  Widget _photo() {
+  /// With a usable photo the hero is a tap target for the full-screen viewer;
+  /// the deck keeps every drag (tap never competes with its pan).
+  Widget _photo(BuildContext context) {
     final raw = driver?.vehiclePhoto?.trim();
     if (raw == null || raw.isEmpty) return _photoFallback();
     // Relative server paths start with "/"; anything else must carry a
@@ -83,12 +87,17 @@ class DriverCard extends StatelessWidget {
         return _photoFallback();
       }
     }
-    return ColorFiltered(
-      colorFilter: const ColorFilter.matrix(_saturation90),
-      child: Image.network(
-        resolveUploadUrl(raw),
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _photoFallback(),
+    return GestureDetector(
+      key: const Key("driver-card-photo"),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showPhotoViewer(context, resolveUploadUrl(raw)),
+      child: ColorFiltered(
+        colorFilter: const ColorFilter.matrix(_saturation90),
+        child: Image.network(
+          resolveUploadUrl(raw),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _photoFallback(),
+        ),
       ),
     );
   }
