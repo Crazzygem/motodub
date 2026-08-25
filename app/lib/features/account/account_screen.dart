@@ -755,7 +755,7 @@ class _VehicleSection extends ConsumerStatefulWidget {
 class _VehicleSectionState extends ConsumerState<_VehicleSection> {
   Driver? _vehicle;
   bool _loading = true;
-  bool _uploadingPhoto = false;
+  bool _busyPhoto = false;
 
   @override
   void initState() {
@@ -772,22 +772,16 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
     });
   }
 
-  /// Vehicle-photo upload mirrors the avatar flow: gallery pick → multipart
-  /// POST → reconcile with the returned server-truth row. Errors surface
-  /// through the same mapped-message SnackBar.
-  Future<void> _pickAndUploadPhoto() async {
-    if (_uploadingPhoto) return;
-    setState(() => _uploadingPhoto = true);
+  /// Gallery uploads mirror the avatar flow: multi gallery pick → multipart
+  /// POST /api/drivers/photos → reconcile with the returned server-truth row.
+  /// Errors surface through the same mapped-message SnackBar.
+  Future<void> _pickAndUploadPhotos() async {
+    if (_busyPhoto) return;
+    setState(() => _busyPhoto = true);
 
-    final picked = await ref.read(avatarPickerProvider)();
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      final mimeType = picked.mimeType ?? _mimeFromName(picked.name);
-      final result = await ref.read(driverRepoProvider).updateVehiclePhoto(
-            bytes: bytes,
-            filename: picked.name.isNotEmpty ? picked.name : "vehicle.jpg",
-            mimeType: mimeType,
-          );
+    final picked = await ref.read(vehiclePhotosPickerProvider)();
+    if (picked.isNotEmpty) {
+      final result = await ref.read(driverRepoProvider).uploadPhotos(picked);
       if (!mounted) return;
       if (result.isOk) {
         setState(() => _vehicle = result.data); // server truth
@@ -798,7 +792,25 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
       }
     }
 
-    if (mounted) setState(() => _uploadingPhoto = false);
+    if (mounted) setState(() => _busyPhoto = false);
+  }
+
+  /// DELETE /api/drivers/photos by index, then adopt the server-truth row.
+  Future<void> _removePhoto(int index) async {
+    if (_busyPhoto) return;
+    setState(() => _busyPhoto = true);
+
+    final result = await ref.read(driverRepoProvider).removePhoto(index);
+    if (!mounted) return;
+    if (result.isOk) {
+      setState(() => _vehicle = result.data); // server truth
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message!)),
+      );
+    }
+
+    if (mounted) setState(() => _busyPhoto = false);
   }
 
   Future<void> _edit() async {
@@ -856,28 +868,8 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
             _row(theme, s.licenseRow, _vehicle!.licenseNo),
             _row(theme, s.pricePerKmLabel,
                 s.vehiclePriceRow(_vehicle!.pricePerKm.toStringAsFixed(2))),
-            const SizedBox(height: 4),
-            // Own Material: the section card's DecoratedBox would otherwise
-            // swallow the ListTile's ink/background painting.
-            Material(
-              type: MaterialType.transparency,
-              child: ListTile(
-                key: const Key("vehicle-photo-row"),
-                contentPadding: EdgeInsets.zero,
-                onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
-                leading: _photoThumb(theme),
-                title: Text(s.updateVehiclePhotoItem,
-                    style: theme.textTheme.labelLarge),
-                trailing: _uploadingPhoto
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(Icons.chevron_right_rounded,
-                        color: context.tokens.textTertiary),
-              ),
-            ),
+            const SizedBox(height: 8),
+            _photoGrid(theme),
           ] else
             Text(s.noVehicleYet, style: theme.textTheme.bodyMedium),
         ],
@@ -885,30 +877,90 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
     );
   }
 
-  /// Thumbnail for the stored vehicle photo — keyed only once there is an
-  /// actual photo to preview; broken URLs degrade silently to the icon.
-  Widget _photoThumb(ThemeData theme) {
-    final raw = _vehicle?.vehiclePhoto?.trim() ?? "";
-    final url = raw.isEmpty ? null : resolveUploadUrl(raw);
+  /// Vehicle photo gallery: a thumbnail per server-truth photo (legacy cover
+  /// included), each removable by index, plus an add tile feeding
+  /// POST /api/drivers/photos. Broken URLs degrade silently to the icon.
+  Widget _photoGrid(ThemeData theme) {
+    final photos = _vehicle?.effectiveVehiclePhotos ?? const <String>[];
+    return Wrap(
+      key: const Key("vehicle-photo-grid"),
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var i = 0; i < photos.length; i++) _photoTile(theme, photos[i], i),
+        _addTile(theme),
+      ],
+    );
+  }
+
+  Widget _photoTile(ThemeData theme, String raw, int index) {
     return Container(
-      key: url == null ? null : const Key("vehicle-photo-thumb"),
-      width: 48,
-      height: 48,
+      key: Key("vehicle-photo-tile-$index"),
+      width: 72,
+      height: 72,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         color: AppColors.amber.withValues(alpha: .14),
         border: Border.all(color: context.tokens.line),
       ),
-      child: url == null
-          ? Icon(Icons.directions_car_rounded,
-              size: 22, color: context.tokens.textSecondary)
-          : Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Icon(Icons.directions_car_rounded,
-                  size: 22, color: context.tokens.textSecondary),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            resolveUploadUrl(raw),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Icon(Icons.directions_car_rounded,
+                size: 22, color: context.tokens.textSecondary),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              key: Key("vehicle-photo-remove-$index"),
+              onTap: _busyPhoto ? null : () => _removePhoto(index),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.ink.withValues(alpha: .65),
+                ),
+                child: const Icon(Icons.close_rounded,
+                    size: 12, color: Colors.white),
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addTile(ThemeData theme) {
+    return Tooltip(
+      message: context.l10n.addVehiclePhotosTooltip,
+      child: GestureDetector(
+        key: const Key("vehicle-add-photos"),
+        onTap: _busyPhoto ? null : _pickAndUploadPhotos,
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: AppColors.amber.withValues(alpha: .10),
+            border: Border.all(color: AppColors.amber.withValues(alpha: .5)),
+          ),
+          child: _busyPhoto
+              ? const Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : Icon(Icons.add_a_photo_rounded,
+                  size: 22, color: AppColors.amberDeep),
+        ),
+      ),
     );
   }
 

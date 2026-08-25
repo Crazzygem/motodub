@@ -100,6 +100,19 @@ const _vehicleWithPhoto = Driver(
   vehiclePhoto: "/uploads/bike.png",
 );
 
+const _vehicleWithGallery = Driver(
+  id: 4,
+  userId: 40,
+  carModel: "Honda Dream 2020",
+  plate: "PP-1A-2345",
+  licenseNo: "KH-DL-1111",
+  verified: true,
+  online: false,
+  pricePerKm: 1.25,
+  vehiclePhoto: "/uploads/bike.png",
+  vehiclePhotos: ["/uploads/bike.png", "/uploads/ride.jpg"],
+);
+
 const _dara = Driver(
   id: 1,
   userId: 10,
@@ -222,9 +235,12 @@ class _StubDriverRepo extends DriverRepo {
   ApiResult<Driver>? meResult;
   ApiResult<Driver>? updateResult;
   ApiResult<Driver>? photoResult;
+  ApiResult<Driver>? photosUploadResult;
+  ApiResult<Driver>? removeResult;
 
   final List<Map<String, dynamic>> updateCalls = [];
-  final List<Uint8List> vehiclePhotoBytes = [];
+  final List<List<XFile>> photosUploadCalls = [];
+  final List<int> removeCalls = [];
 
   @override
   Future<ApiResult<Driver>> me() async =>
@@ -262,8 +278,20 @@ class _StubDriverRepo extends DriverRepo {
     String filename = "vehicle.jpg",
     String mimeType = "image/jpeg",
   }) async {
-    vehiclePhotoBytes.add(bytes);
     return photoResult ?? const ApiResult.ok(_vehicleWithPhoto);
+  }
+
+  @override
+  Future<ApiResult<Driver>> uploadPhotos(List<XFile> photos) async {
+    photosUploadCalls.add(photos);
+    return photosUploadResult ?? const ApiResult.ok(_vehicleWithGallery);
+  }
+
+  @override
+  Future<ApiResult<Driver>> removePhoto(int index) async {
+    removeCalls.add(index);
+    // Default server truth after a removal: gallery reduced to the cover.
+    return removeResult ?? const ApiResult.ok(_vehicleWithPhoto);
   }
 }
 
@@ -309,6 +337,7 @@ Future<ProviderContainer> _pump(
   _StubUserRepo? userRepo,
   _StubDriverRepo? driverRepo,
   AvatarPicker? picker,
+  VehiclePhotosPicker? multiPicker,
   bool fullRouter = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
@@ -323,6 +352,8 @@ Future<ProviderContainer> _pump(
     deckProvider.overrideWith(() => _FakeDeck([_dara])),
     rideRepoProvider.overrideWithValue(_StubRideRepo()),
     if (picker != null) avatarPickerProvider.overrideWithValue(picker),
+    if (multiPicker != null)
+      vehiclePhotosPickerProvider.overrideWithValue(multiPicker),
   ]);
   addTearDown(container.dispose);
 
@@ -814,56 +845,127 @@ void main() {
       expect(find.byTooltip("Edit vehicle"), findsNothing);
     });
 
-    testWidgets("update-vehicle-photo row picks, uploads through the repo "
-        "and previews the server truth", (tester) async {
+    testWidgets("vehicle photo grid renders a tile per gallery photo plus "
+        "the add tile", (tester) async {
+      final driverRepo =
+          _StubDriverRepo(meResult: ApiResult.ok(_vehicleWithGallery));
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+      );
+
+      expect(find.byKey(const Key("vehicle-photo-grid")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-1")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-remove-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-remove-1")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-add-photos")), findsOneWidget);
+    });
+
+    testWidgets("a legacy cover-only vehicle still shows one grid tile",
+        (tester) async {
+      final driverRepo =
+          _StubDriverRepo(meResult: ApiResult.ok(_vehicleWithPhoto));
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+      );
+
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-1")), findsNothing);
+    });
+
+    testWidgets("the add tile picks multiple photos, uploads them through "
+        "the repo and adopts the server-truth gallery", (tester) async {
       final driverRepo = _StubDriverRepo(meResult: ApiResult.ok(_vehicle));
       await _pump(
         tester,
         session: _session(role: "driver"),
         driverRepo: driverRepo,
-        picker: () async => XFile.fromData(
-          _png,
-          name: "bike.png",
-          mimeType: "image/png",
-        ),
+        multiPicker: () async => [
+          XFile.fromData(_png, path: "bike.png", mimeType: "image/png"),
+          XFile.fromData(_png, path: "ride.jpg", mimeType: "image/jpeg"),
+        ],
       );
-      expect(find.byKey(const Key("vehicle-photo-thumb")), findsNothing);
 
-      await tester.tap(find.byKey(const Key("vehicle-photo-row")));
+      await tester.tap(find.byKey(const Key("vehicle-add-photos")));
       await tester.pumpAndSettle();
 
-      expect(driverRepo.vehiclePhotoBytes.single, _png);
-      // Server-truth vehicle_photo renders as the section thumbnail.
-      expect(find.byKey(const Key("vehicle-photo-thumb")), findsOneWidget);
+      expect(driverRepo.photosUploadCalls.single, hasLength(2));
+      // Server truth adopted: both photos render as tiles.
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-1")), findsOneWidget);
     });
 
-    testWidgets("a failed vehicle-photo upload surfaces the mapped error",
+    testWidgets("tapping a tile's X removes that index through the repo",
         (tester) async {
+      final driverRepo =
+          _StubDriverRepo(meResult: ApiResult.ok(_vehicleWithGallery));
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+      );
+
+      await tester.tap(find.byKey(const Key("vehicle-photo-remove-1")));
+      await tester.pumpAndSettle();
+
+      expect(driverRepo.removeCalls.single, 1);
+      // Server truth adopted: one tile left, re-indexed.
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-1")), findsNothing);
+    });
+
+    testWidgets("a failed upload surfaces the mapped error without adopting "
+        "anything", (tester) async {
       final driverRepo = _StubDriverRepo(meResult: ApiResult.ok(_vehicle))
-        ..photoResult = const ApiResult.err(
+        ..photosUploadResult = const ApiResult.err(
           "VALIDATION_ERROR",
-          "Only jpeg, png or webp images are allowed",
+          "Up to 6 vehicle photos are allowed",
         );
       await _pump(
         tester,
         session: _session(role: "driver"),
         driverRepo: driverRepo,
-        picker: () async => XFile.fromData(
-          _png,
-          name: "bike.png",
-          mimeType: "image/png",
-        ),
+        multiPicker: () async => [
+          XFile.fromData(_png, path: "bike.png", mimeType: "image/png"),
+        ],
       );
 
-      await tester.tap(find.byKey(const Key("vehicle-photo-row")));
+      await tester.tap(find.byKey(const Key("vehicle-add-photos")));
       await tester.pumpAndSettle();
 
       expect(
-        find.text("Only jpeg, png or webp images are allowed"),
+        find.text("Up to 6 vehicle photos are allowed"),
         findsOneWidget, // SnackBar
       );
-      // No preview without server truth.
-      expect(find.byKey(const Key("vehicle-photo-thumb")), findsNothing);
+      expect(driverRepo.photosUploadCalls.single, hasLength(1));
+      // No tiles without server truth.
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsNothing);
+    });
+
+    testWidgets("a failed removal surfaces the error and keeps the grid",
+        (tester) async {
+      final driverRepo =
+          _StubDriverRepo(meResult: ApiResult.ok(_vehicleWithGallery))
+            ..removeResult = const ApiResult.err(
+              "VALIDATION_ERROR",
+              "Photo index out of range",
+            );
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+      );
+
+      await tester.tap(find.byKey(const Key("vehicle-photo-remove-0")));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Photo index out of range"), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-0")), findsOneWidget);
+      expect(find.byKey(const Key("vehicle-photo-tile-1")), findsOneWidget);
     });
   });
 }

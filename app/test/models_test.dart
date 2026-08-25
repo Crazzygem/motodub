@@ -3,6 +3,7 @@ import "dart:typed_data";
 
 import "package:dio/dio.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:image_picker/image_picker.dart";
 import "package:motodub/core/api/api_client.dart";
 import "package:motodub/core/api/driver_repo.dart";
 import "package:motodub/core/api/ride_repo.dart";
@@ -172,6 +173,91 @@ void main() {
       });
       expect(driver.vehiclePhoto, "/uploads/vehicle.webp");
       expect(driver.photo, "/uploads/driver.jpg");
+    });
+
+    test("fromJson parses the vehicle_photos gallery array", () {
+      final driver = Driver.fromJson(const {
+        "id": 9,
+        "car_model": "Honda Dream",
+        "plate": "PP-1A-2345",
+        "license_no": "L-1",
+        "price_per_km": "1.00",
+        "vehicle_photo": "/uploads/a.png",
+        "vehicle_photos": ["/uploads/a.png", "/uploads/b.jpg"],
+      });
+      expect(driver.vehiclePhotos, ["/uploads/a.png", "/uploads/b.jpg"]);
+    });
+
+    test("fromJson defaults vehicle_photos to [] when absent or null", () {
+      const json = {
+        "id": 9,
+        "car_model": "Honda Dream",
+        "plate": "PP-1A-2345",
+        "license_no": "L-1",
+        "price_per_km": "1.00",
+      };
+      expect(Driver.fromJson(json).vehiclePhotos, isEmpty);
+      expect(
+        Driver.fromJson({...json, "vehicle_photos": null}).vehiclePhotos,
+        isEmpty,
+      );
+    });
+
+    test("effectiveVehiclePhotos prefers the gallery over the legacy cover",
+        () {
+      final gallery = Driver.fromJson(const {
+        "id": 9,
+        "car_model": "c",
+        "plate": "p",
+        "license_no": "l",
+        "price_per_km": "1.00",
+        "vehicle_photo": "/uploads/a.png",
+        "vehicle_photos": ["/uploads/a.png", "/uploads/b.jpg"],
+      });
+      expect(gallery.effectiveVehiclePhotos,
+          ["/uploads/a.png", "/uploads/b.jpg"]);
+    });
+
+    test("effectiveVehiclePhotos falls back to the legacy cover alone", () {
+      final legacy = Driver.fromJson(const {
+        "id": 9,
+        "car_model": "c",
+        "plate": "p",
+        "license_no": "l",
+        "price_per_km": "1.00",
+        "vehicle_photo": "/uploads/cover.webp",
+      });
+      expect(legacy.effectiveVehiclePhotos, ["/uploads/cover.webp"]);
+
+      const bare = Driver(
+        id: 10,
+        userId: 0,
+        carModel: "c",
+        plate: "p",
+        licenseNo: "l",
+        verified: false,
+        online: false,
+        pricePerKm: 1,
+      );
+      expect(bare.effectiveVehiclePhotos, isEmpty);
+    });
+
+    test("toJson round-trips vehicle_photos through fromJson", () {
+      const json = {
+        "id": 9,
+        "user_id": 4,
+        "car_model": "Honda Dream",
+        "plate": "PP-1A-2345",
+        "license_no": "L-99887",
+        "verified": true,
+        "online": false,
+        "price_per_km": "1.20",
+        "vehicle_photo": "/uploads/a.png",
+        "vehicle_photos": ["/uploads/a.png", "/uploads/b.jpg"],
+      };
+      final roundTrip = Driver.fromJson(Driver.fromJson(json).toJson());
+      expect(roundTrip.vehiclePhotos, ["/uploads/a.png", "/uploads/b.jpg"]);
+      expect(roundTrip.vehiclePhoto, "/uploads/a.png");
     });
 
     test("toJson round-trips through fromJson", () {
@@ -731,6 +817,71 @@ void main() {
       expect(form.files.single.value.length, bytes.length);
       expect(result.isOk, isTrue);
       expect(result.data!.vehiclePhoto, "/uploads/fresh.png");
+    });
+
+    test("uploadPhotos POSTs every file under multipart 'photos' to "
+        "/api/drivers/photos and parses the gallery", () async {
+      late RequestOptions captured;
+      final repo = DriverRepo(_clientWith((options) {
+        captured = options;
+        return _ok(const {
+          "id": 9,
+          "user_id": 6,
+          "car_model": "Honda Dream",
+          "plate": "PP-9Z-9999",
+          "license_no": "L-11122",
+          "verified": false,
+          "online": false,
+          "price_per_km": "1.10",
+          "vehicle_photo": "/uploads/a.png",
+          "vehicle_photos": ["/uploads/a.png", "/uploads/b.jpg"],
+        });
+      }));
+
+      final result = await repo.uploadPhotos([
+        // fromData ignores `name` off-web — carry it via `path`.
+        XFile.fromData(Uint8List.fromList([1]), path: "a.png"),
+        XFile.fromData(Uint8List.fromList([2, 3]), path: "b.jpg"),
+      ]);
+
+      expect(captured.method, "POST");
+      expect(captured.uri.path, "/api/drivers/photos");
+      final form = captured.data as FormData;
+      final files = form.files;
+      expect(files, hasLength(2));
+      expect(files.every((f) => f.key == "photos"), isTrue);
+      expect(files[0].value.filename, "a.png");
+      expect(files[1].value.filename, "b.jpg");
+      expect(result.isOk, isTrue);
+      expect(result.data!.vehiclePhotos, ["/uploads/a.png", "/uploads/b.jpg"]);
+      expect(result.data!.vehiclePhoto, "/uploads/a.png");
+    });
+
+    test("removePhoto DELETEs {index} to /api/drivers/photos and parses the "
+        "updated row", () async {
+      late RequestOptions captured;
+      final repo = DriverRepo(_clientWith((options) {
+        captured = options;
+        return _ok(const {
+          "id": 9,
+          "user_id": 6,
+          "car_model": "Honda Dream",
+          "plate": "PP-9Z-9999",
+          "license_no": "L-11122",
+          "verified": false,
+          "online": false,
+          "price_per_km": "1.10",
+          "vehicle_photos": ["/uploads/b.jpg"],
+        });
+      }));
+
+      final result = await repo.removePhoto(0);
+
+      expect(captured.method, "DELETE");
+      expect(captured.uri.path, "/api/drivers/photos");
+      expect(captured.data, {"index": 0});
+      expect(result.isOk, isTrue);
+      expect(result.data!.vehiclePhotos, ["/uploads/b.jpg"]);
     });
 
     test("setOnline patches /api/drivers/online with location when given",

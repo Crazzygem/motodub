@@ -515,6 +515,9 @@ class AppLocalizationsKm extends AppLocalizations {
   String get updateVehiclePhotoItem => 'បន្ទាន់សម័យរូបភាពយានយន្ត';
 
   @override
+  String get addVehiclePhotosTooltip => 'បន្ថែមរូបភាព';
+
+  @override
   String get licenseRow => 'អាជ្ញាបណ្ណ';
 
   @override

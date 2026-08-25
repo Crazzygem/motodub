@@ -248,6 +248,7 @@
   "vehicleTitle": "Vehicle",
   "editVehicleTooltip": "Edit vehicle",
   "updateVehiclePhotoItem": "Update vehicle photo",
+  "addVehiclePhotosTooltip": "Add photos",
   "licenseRow": "License",
   "noVehicleYet": "No vehicle yet",
   "editProfileTitle": "Edit profile",

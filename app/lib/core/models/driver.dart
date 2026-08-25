@@ -20,6 +20,7 @@ class Driver {
     this.distanceKm,
     this.etaMinutes,
     this.vehiclePhoto,
+    this.vehiclePhotos = const [],
   });
 
   final int id;
@@ -42,6 +43,17 @@ class Driver {
   // Vehicle photo URL (drivers.vehicle_photo) — set on deck cards, own
   // profile and admin rows; null when the driver never uploaded one.
   final String? vehiclePhoto;
+  // Multi-photo gallery (drivers.vehicle_photos JSON array) — the tinder-style
+  // pager source; [] when the driver has no gallery.
+  final List<String> vehiclePhotos;
+
+  /// Gallery the card/grid should show: the server-normalized array, or the
+  /// legacy single cover when only `vehicle_photo` is populated.
+  List<String> get effectiveVehiclePhotos {
+    if (vehiclePhotos.isNotEmpty) return vehiclePhotos;
+    final cover = vehiclePhoto?.trim();
+    return (cover == null || cover.isEmpty) ? const [] : [cover];
+  }
 
   static Driver fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -63,6 +75,7 @@ class Driver {
       distanceKm: _asDoubleOrNull(map["distance_km"]),
       etaMinutes: map["eta_minutes"] as int?,
       vehiclePhoto: map["vehicle_photo"] as String?,
+      vehiclePhotos: _asPhotoList(map["vehicle_photos"]),
     );
   }
 
@@ -85,7 +98,13 @@ class Driver {
         if (distanceKm != null) "distance_km": distanceKm,
         if (etaMinutes != null) "eta_minutes": etaMinutes,
         if (vehiclePhoto != null) "vehicle_photo": vehiclePhoto,
+        if (vehiclePhotos.isNotEmpty) "vehicle_photos": vehiclePhotos,
       };
+
+  static List<String> _asPhotoList(dynamic value) {
+    if (value is! List) return const [];
+    return [for (final entry in value) if (entry is String) entry];
+  }
 
   static double _asDouble(dynamic value) {
     if (value is num) return value.toDouble();

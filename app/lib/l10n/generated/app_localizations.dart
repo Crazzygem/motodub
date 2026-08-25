@@ -1046,6 +1046,12 @@ abstract class AppLocalizations {
   /// **'Update vehicle photo'**
   String get updateVehiclePhotoItem;
 
+  /// No description provided for @addVehiclePhotosTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get addVehiclePhotosTooltip;
+
   /// No description provided for @licenseRow.
   ///
   /// In en, this message translates to:

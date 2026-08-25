@@ -8,3 +8,12 @@ typedef AvatarPicker = Future<XFile?> Function();
 final avatarPickerProvider = Provider<AvatarPicker>((ref) {
   return () => ImagePicker().pickImage(source: ImageSource.gallery);
 });
+
+/// Multi-pick seam for the vehicle photo gallery (widget tests fake it too).
+typedef VehiclePhotosPicker = Future<List<XFile>> Function();
+
+/// Gallery-only multi pick feeding POST /api/drivers/photos (cap 6 enforced
+/// server-side). pickMultiImage is gallery-only on mobile — no source param.
+final vehiclePhotosPickerProvider = Provider<VehiclePhotosPicker>((ref) {
+  return () => ImagePicker().pickMultiImage();
+});
