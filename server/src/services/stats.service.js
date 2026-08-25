@@ -75,6 +75,7 @@ function toDriverItem(driver) {
     // DECIMAL columns surface as strings — coerce so pins get numbers.
     car_model: driver.car_model,
     plate: driver.plate,
+    vehicle_photo: driver.vehicle_photo ?? null,
     lat: driver.lat === null ? null : Number(driver.lat),
     lng: driver.lng === null ? null : Number(driver.lng),
     verified: Boolean(driver.verified),

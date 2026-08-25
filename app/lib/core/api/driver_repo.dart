@@ -1,3 +1,7 @@
+import "dart:typed_data";
+
+import "package:dio/dio.dart" show DioMediaType, FormData, MultipartFile;
+
 import "../models/driver.dart";
 import "api_client.dart";
 
@@ -72,4 +76,25 @@ class DriverRepo {
         },
         parse: Driver.fromJson,
       );
+
+  /// POST /drivers/vehicle-photo — multipart field `photo` (jpeg/png/webp
+  /// ≤5MB enforced server-side). Answers the updated `Driver` row.
+  Future<ApiResult<Driver>> updateVehiclePhoto({
+    required Uint8List bytes,
+    String filename = "vehicle.jpg",
+    String mimeType = "image/jpeg",
+  }) {
+    final type = mimeType.split("/");
+    return _client.postMultipart<Driver>(
+      "/api/drivers/vehicle-photo",
+      body: FormData.fromMap({
+        "photo": MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+          contentType: DioMediaType(type.first, type.last),
+        ),
+      }),
+      parse: Driver.fromJson,
+    );
+  }
 }

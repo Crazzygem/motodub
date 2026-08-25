@@ -247,6 +247,7 @@
   "logoutButton": "Log out",
   "vehicleTitle": "Vehicle",
   "editVehicleTooltip": "Edit vehicle",
+  "updateVehiclePhotoItem": "Update vehicle photo",
   "licenseRow": "License",
   "noVehicleYet": "No vehicle yet",
   "editProfileTitle": "Edit profile",

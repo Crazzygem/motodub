@@ -26,6 +26,7 @@ function toCard(driver, distanceKm) {
     rating: Number(driver.User.rating),
     car_model: driver.car_model,
     plate: driver.plate,
+    vehicle_photo: driver.vehicle_photo ?? null,
     price_per_km: Number(driver.price_per_km),
     distance_km: round(distanceKm),
     eta_minutes: etaMinutes(distanceKm),
@@ -82,6 +83,16 @@ export async function updateOwnProfile(userId, body) {
 /** Task 4.6: read own vehicle profile — NOT_FOUND when none yet. */
 export async function getOwnProfile(userId) {
   return requireDriver(userId);
+}
+
+/**
+ * POST /api/drivers/vehicle-photo — multer already wrote the file; record
+ * its URL on drivers.vehicle_photo and answer the updated row.
+ */
+export async function setVehiclePhoto(userId, filename) {
+  const driver = await requireDriver(userId);
+  await driver.update({ vehicle_photo: `/uploads/${filename}` });
+  return driver;
 }
 
 /**

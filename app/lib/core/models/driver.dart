@@ -19,6 +19,7 @@ class Driver {
     this.rating,
     this.distanceKm,
     this.etaMinutes,
+    this.vehiclePhoto,
   });
 
   final int id;
@@ -38,6 +39,9 @@ class Driver {
   final double? rating;
   final double? distanceKm;
   final int? etaMinutes;
+  // Vehicle photo URL (drivers.vehicle_photo) — set on deck cards, own
+  // profile and admin rows; null when the driver never uploaded one.
+  final String? vehiclePhoto;
 
   static Driver fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -58,6 +62,7 @@ class Driver {
       rating: _asDoubleOrNull(map["rating"]),
       distanceKm: _asDoubleOrNull(map["distance_km"]),
       etaMinutes: map["eta_minutes"] as int?,
+      vehiclePhoto: map["vehicle_photo"] as String?,
     );
   }
 
@@ -79,6 +84,7 @@ class Driver {
         if (rating != null) "rating": rating,
         if (distanceKm != null) "distance_km": distanceKm,
         if (etaMinutes != null) "eta_minutes": etaMinutes,
+        if (vehiclePhoto != null) "vehicle_photo": vehiclePhoto,
       };
 
   static double _asDouble(dynamic value) {

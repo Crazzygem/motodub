@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../core/api/api_client.dart" show apiBaseUrl;
+import "../../core/api/api_client.dart" show apiBaseUrl, resolveUploadUrl;
 import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/auth/auth_state.dart";
 import "../../core/l10n/l10n.dart";
@@ -755,6 +755,7 @@ class _VehicleSection extends ConsumerStatefulWidget {
 class _VehicleSectionState extends ConsumerState<_VehicleSection> {
   Driver? _vehicle;
   bool _loading = true;
+  bool _uploadingPhoto = false;
 
   @override
   void initState() {
@@ -769,6 +770,35 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
       _loading = false;
       _vehicle = result.data;
     });
+  }
+
+  /// Vehicle-photo upload mirrors the avatar flow: gallery pick → multipart
+  /// POST → reconcile with the returned server-truth row. Errors surface
+  /// through the same mapped-message SnackBar.
+  Future<void> _pickAndUploadPhoto() async {
+    if (_uploadingPhoto) return;
+    setState(() => _uploadingPhoto = true);
+
+    final picked = await ref.read(avatarPickerProvider)();
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      final mimeType = picked.mimeType ?? _mimeFromName(picked.name);
+      final result = await ref.read(driverRepoProvider).updateVehiclePhoto(
+            bytes: bytes,
+            filename: picked.name.isNotEmpty ? picked.name : "vehicle.jpg",
+            mimeType: mimeType,
+          );
+      if (!mounted) return;
+      if (result.isOk) {
+        setState(() => _vehicle = result.data); // server truth
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.message!)),
+        );
+      }
+    }
+
+    if (mounted) setState(() => _uploadingPhoto = false);
   }
 
   Future<void> _edit() async {
@@ -826,10 +856,59 @@ class _VehicleSectionState extends ConsumerState<_VehicleSection> {
             _row(theme, s.licenseRow, _vehicle!.licenseNo),
             _row(theme, s.pricePerKmLabel,
                 s.vehiclePriceRow(_vehicle!.pricePerKm.toStringAsFixed(2))),
+            const SizedBox(height: 4),
+            // Own Material: the section card's DecoratedBox would otherwise
+            // swallow the ListTile's ink/background painting.
+            Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                key: const Key("vehicle-photo-row"),
+                contentPadding: EdgeInsets.zero,
+                onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                leading: _photoThumb(theme),
+                title: Text(s.updateVehiclePhotoItem,
+                    style: theme.textTheme.labelLarge),
+                trailing: _uploadingPhoto
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.chevron_right_rounded,
+                        color: context.tokens.textTertiary),
+              ),
+            ),
           ] else
             Text(s.noVehicleYet, style: theme.textTheme.bodyMedium),
         ],
       ),
+    );
+  }
+
+  /// Thumbnail for the stored vehicle photo — keyed only once there is an
+  /// actual photo to preview; broken URLs degrade silently to the icon.
+  Widget _photoThumb(ThemeData theme) {
+    final raw = _vehicle?.vehiclePhoto?.trim() ?? "";
+    final url = raw.isEmpty ? null : resolveUploadUrl(raw);
+    return Container(
+      key: url == null ? null : const Key("vehicle-photo-thumb"),
+      width: 48,
+      height: 48,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.amber.withValues(alpha: .14),
+        border: Border.all(color: context.tokens.line),
+      ),
+      child: url == null
+          ? Icon(Icons.directions_car_rounded,
+              size: 22, color: context.tokens.textSecondary)
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Icon(Icons.directions_car_rounded,
+                  size: 22, color: context.tokens.textSecondary),
+            ),
     );
   }
 

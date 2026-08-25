@@ -281,7 +281,7 @@ export async function getForViewer(viewerId, viewerRole, rideId) {
   const ride = await Ride.findByPk(rideId, {
     include: [
       { model: User, as: "customer", attributes: ["id", "name", "rating"] },
-      { model: User, as: "driver", attributes: ["id", "name", "phone", "rating"] },
+      { model: User, as: "driver", attributes: ["id", "name", "phone", "photo", "rating"] },
     ],
   });
   if (!ride) throw businessError("NOT_FOUND", "Ride not found");
@@ -292,10 +292,10 @@ export async function getForViewer(viewerId, viewerRole, rideId) {
     throw businessError("FORBIDDEN", "You are not part of this ride");
   }
 
-  // car_model/plate live on drivers (keyed by user_id), not users.
+  // car_model/plate/vehicle_photo live on drivers (keyed by user_id), not users.
   const vehicle = await Driver.findOne({
     where: { user_id: ride.driver_id },
-    attributes: ["car_model", "plate"],
+    attributes: ["car_model", "plate", "vehicle_photo"],
   });
 
   return {
@@ -304,6 +304,7 @@ export async function getForViewer(viewerId, viewerRole, rideId) {
       ...ride.driver?.toJSON(),
       car_model: vehicle?.car_model ?? null,
       plate: vehicle?.plate ?? null,
+      vehicle_photo: vehicle?.vehicle_photo ?? null,
     },
   };
 }

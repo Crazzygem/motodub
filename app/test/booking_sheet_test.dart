@@ -61,8 +61,9 @@ class _StubRepo extends RideRepo {
 Widget _harness({
   required RideRepo repo,
   bool routed = false,
+  Driver driver = _driver,
 }) {
-  final sheet = BookingSheet(driver: _driver, tileLayer: const SizedBox.shrink());
+  final sheet = BookingSheet(driver: driver, tileLayer: const SizedBox.shrink());
 
   if (!routed) {
     return ProviderScope(
@@ -103,11 +104,16 @@ Widget _harness({
   );
 }
 
-Widget _pumpSheet(WidgetTester tester, RideRepo repo, {bool routed = false}) {
+Widget _pumpSheet(
+  WidgetTester tester,
+  RideRepo repo, {
+  bool routed = false,
+  Driver driver = _driver,
+}) {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3.0;
   addTearDown(tester.view.reset);
-  return _harness(repo: repo, routed: routed);
+  return _harness(repo: repo, routed: routed, driver: driver);
 }
 
 Future<void> _fillAddresses(WidgetTester tester) async {
@@ -134,6 +140,43 @@ void main() {
     expect(find.text("Honda Dream · PP-1A-2345"), findsOneWidget);
     expect(find.text("4.8"), findsOneWidget);
     expect(find.text("1.20 /km"), findsOneWidget);
+  });
+
+  testWidgets("mini-header prefers vehicle_photo over the avatar photo",
+      (tester) async {
+    await tester.pumpWidget(_pumpSheet(
+      tester,
+      _StubRepo(const ApiResult.ok(null)),
+      driver: const Driver(
+        id: 7,
+        userId: 4,
+        carModel: "Honda Dream",
+        plate: "PP-1A-2345",
+        licenseNo: "L-99887",
+        verified: true,
+        online: true,
+        pricePerKm: 1.20,
+        name: "Dara Sok",
+        photo: "/uploads/face.png",
+        rating: 4.8,
+        etaMinutes: 4,
+        vehiclePhoto: "/uploads/bike.webp",
+      ),
+    ));
+    // One frame: enough for the tree, not long enough for the (unreachable
+    // in tests) photo fetch to fall into its errorBuilder.
+    await tester.pump();
+
+    // The shared DriverPhotoAvatar renders the photo as an Image.network —
+    // exactly one /uploads image, and it's the VEHICLE photo.
+    final urls = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<NetworkImage>()
+        .map((n) => n.url)
+        .where((url) => url.contains("/uploads/"))
+        .toList();
+    expect(urls, ["http://10.0.2.2:3000/uploads/bike.webp"]);
   });
 
   testWidgets("sheet renders map with both pins and address fields",

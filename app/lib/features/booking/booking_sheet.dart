@@ -9,6 +9,7 @@ import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
+import "../shared/driver_photo_avatar.dart";
 import "booking_provider.dart";
 
 /// OpenStreetMap raster tiles — no API key (locked decision 9).
@@ -244,16 +245,11 @@ class _MiniHeader extends StatelessWidget {
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 22,
+        // Shared identity circle: vehicle photo → avatar → taxi icon.
+        DriverPhotoAvatar(
+          vehiclePhoto: driver.vehiclePhoto,
+          photo: driver.photo,
           backgroundColor: tokens.inset,
-          backgroundImage: (driver.photo != null && driver.photo!.isNotEmpty)
-              ? NetworkImage(driver.photo!)
-              : null,
-          child: (driver.photo == null || driver.photo!.isEmpty)
-              ? Icon(Icons.local_taxi_rounded,
-                  color: tokens.textSecondary, size: 22)
-              : null,
         ),
         const SizedBox(width: 12),
         Expanded(

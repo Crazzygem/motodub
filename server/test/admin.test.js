@@ -297,6 +297,7 @@ describe("GET /api/admin/drivers", () => {
       price_per_km: Number(vuthyRow.price_per_km),
       car_model: vuthyRow.car_model,
       plate: vuthyRow.plate,
+      vehicle_photo: vuthyRow.vehicle_photo ?? null,
       lat: vuthyRow.lat === null ? null : Number(vuthyRow.lat),
       lng: vuthyRow.lng === null ? null : Number(vuthyRow.lng),
       verified: false,

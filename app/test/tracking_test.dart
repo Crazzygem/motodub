@@ -55,6 +55,25 @@ Ride _rideWith(String status) => Ride(
       driverPlate: "PP-1A-2345",
     );
 
+Ride _rideWithPhotos(String status) => Ride(
+      id: 100,
+      customerId: 9,
+      driverId: 40,
+      status: status,
+      pickupLat: 11.5564,
+      pickupLng: 104.9282,
+      pickupAddress: "Central Market",
+      dropoffLat: 11.5449,
+      dropoffLng: 104.8922,
+      dropoffAddress: "Airport",
+      driverName: "Dara",
+      driverPhone: "+855 333 333",
+      driverCarModel: "Toyota Highlander SUV",
+      driverPlate: "PP-1A-2345",
+      driverPhoto: "/uploads/face.jpg",
+      driverVehiclePhoto: "/uploads/bike.webp",
+    );
+
 ApiResult<Ride> _ok(Ride ride) => ApiResult.ok(ride);
 
 ApiClient _deadClient() => ApiClient(dio: Dio());
@@ -357,6 +376,25 @@ void main() {
       // Real distance + ETA row, computed from the ride's coords.
       expect(find.textContaining("min ETA"), findsOneWidget);
       expect(find.textContaining("km ·"), findsOneWidget);
+    });
+
+    testWidgets("driver card shows the vehicle photo when the snapshot "
+        "carries one", (tester) async {
+      repo.getByIdResult = _ok(_rideWithPhotos("accepted"));
+      await pumpScreen(tester);
+
+      // One frame: enough for the tree, not long enough for the (blocked)
+      // image fetch to fail into its fallback.
+      await tester.pump();
+
+      final urls = tester
+          .widgetList<Image>(find.byType(Image))
+          .map((image) => image.image)
+          .whereType<NetworkImage>()
+          .map((n) => n.url)
+          .where((url) => url.contains("/uploads/"))
+          .toList();
+      expect(urls, ["http://10.0.2.2:3000/uploads/bike.webp"]);
     });
 
     testWidgets("distance and ETA helpers mirror the server's rule",

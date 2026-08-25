@@ -92,3 +92,17 @@ export async function me(req, res) {
     return fail(res, err.code, err.message);
   }
 }
+
+// POST /api/drivers/vehicle-photo — multer already wrote the file; the
+// service records its URL and answers the updated driver row.
+export async function uploadVehiclePhoto(req, res) {
+  try {
+    return ok(
+      res,
+      await driverService.setVehiclePhoto(req.user.id, req.file.filename),
+    );
+  } catch (err) {
+    if (!err.code) throw err;
+    return fail(res, err.code, err.message);
+  }
+}

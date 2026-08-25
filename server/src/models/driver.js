@@ -13,6 +13,7 @@ export const Driver = sequelize.define(
     verified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     online: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     price_per_km: { type: DataTypes.DECIMAL(6, 2), allowNull: false },
+    vehicle_photo: { type: DataTypes.STRING(255), allowNull: true },
     lat: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
     lng: { type: DataTypes.DECIMAL(10, 7), allowNull: true },
   },

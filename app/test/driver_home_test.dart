@@ -517,6 +517,52 @@ void main() {
     expect(find.text("Car model"), findsNothing); // not the setup form
   });
 
+  testWidgets("vehicle card shows the stored vehicle photo when set",
+      (tester) async {
+    const withPhoto = Driver(
+      id: 4,
+      userId: 40,
+      carModel: "Honda Dream",
+      plate: "PP-1A-2345",
+      licenseNo: "KH-DL-1111",
+      verified: true,
+      online: false,
+      pricePerKm: 1.20,
+      vehiclePhoto: "/uploads/bike.png",
+    );
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: ApiResult.ok(withPhoto)),
+      rideRepo: _StubRideRepo(),
+    );
+    // Two frames: profile data lands; the (unreachable in tests) photo fetch
+    // has NOT yet failed into its errorBuilder.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final urls = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<NetworkImage>()
+        .map((n) => n.url)
+        .toList();
+    expect(urls, contains("http://10.0.2.2:3000/uploads/bike.png"));
+  });
+
+  testWidgets("vehicle card falls back to the car icon without a photo",
+      (tester) async {
+    await _pumpHarness(
+      tester,
+      driverRepo: _StubDriverRepo(meResult: const ApiResult.ok(_vehicle)),
+      rideRepo: _StubRideRepo(),
+    );
+    await tester.pumpAndSettle(); // no images on this screen — settle is safe
+
+    expect(find.text("Honda Dream · PP-1A-2345"), findsOneWidget);
+    expect(find.byIcon(Icons.directions_car_rounded), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
+  });
+
   testWidgets("earnings summary shows today's completed count and average "
       "rating from rides/mine", (tester) async {
     final now = DateTime.now();

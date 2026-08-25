@@ -235,6 +235,32 @@ class _VehicleCard extends StatelessWidget {
 
   final Driver vehicle;
 
+  /// Stored vehicle photo — same treatment as the account-section thumbnail:
+  /// placeholder car icon without/broken URL, silent degrade, no crash.
+  Widget _vehiclePhotoThumb(String? rawPhoto, MotoTokens tokens) {
+    final raw = rawPhoto?.trim() ?? "";
+    final url = raw.isEmpty ? null : resolveUploadUrl(raw);
+    return Container(
+      width: 48,
+      height: 48,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.amber.withValues(alpha: .14),
+        border: Border.all(color: tokens.line),
+      ),
+      child: url == null
+          ? Icon(Icons.directions_car_rounded,
+              size: 22, color: tokens.textSecondary)
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Icon(Icons.directions_car_rounded,
+                  size: 22, color: tokens.textSecondary),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -250,6 +276,8 @@ class _VehicleCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          _vehiclePhotoThumb(vehicle.vehiclePhoto, tokens),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -154,6 +154,24 @@ void main() {
       expect(driver.etaMinutes, 4);
       expect(driver.pricePerKm, 1.20);
       expect(driver.verified, isFalse); // absent → default false
+      expect(driver.vehiclePhoto, isNull); // absent → default null
+    });
+
+    test("fromJson carries vehicle_photo through the deck-card shape", () {
+      final driver = Driver.fromJson(const {
+        "id": 8,
+        "name": "Sophea",
+        "photo": "/uploads/driver.jpg",
+        "vehicle_photo": "/uploads/vehicle.webp",
+        "rating": "4.5",
+        "car_model": "Toyota Corolla sedan",
+        "plate": "PP-2B-3456",
+        "price_per_km": "0.90",
+        "distance_km": 2.2,
+        "eta_minutes": 6,
+      });
+      expect(driver.vehiclePhoto, "/uploads/vehicle.webp");
+      expect(driver.photo, "/uploads/driver.jpg");
     });
 
     test("toJson round-trips through fromJson", () {
@@ -223,8 +241,8 @@ void main() {
         "pickup_lat": 11.5564,
         "pickup_lng": 104.9282,
         "pickup_address": "Central Market",
-        "dropoff_lat": 11.5449,
-        "dropoff_lng": 104.8922,
+        "dropoff_lat": "11.5449000",
+        "dropoff_lng": "104.8922000",
         "dropoff_address": "Airport",
         "fare": null,
         "customer_rating": 5,
@@ -233,6 +251,50 @@ void main() {
       expect(ride.customerRating, 5);
       expect(ride.driverRating, 4);
       expect(ride.pickupLat, 11.5564);
+    });
+
+    test("fromJson maps the driver snapshot photo fields (tracking card)",
+        () {
+      final ride = Ride.fromJson(const {
+        "id": 47,
+        "customer_id": 9,
+        "driver_id": 4,
+        "status": "accepted",
+        "pickup_lat": 11.5564,
+        "pickup_lng": 104.9282,
+        "pickup_address": "Central Market",
+        "dropoff_lat": 11.5449,
+        "dropoff_lng": 104.8922,
+        "dropoff_address": "Airport",
+        "driver": {
+          "id": 4,
+          "name": "Dara",
+          "phone": "+855 333 333",
+          "photo": "/uploads/face.jpg",
+          "rating": 5,
+          "car_model": "Toyota Highlander SUV",
+          "plate": "PP-1A-2345",
+          "vehicle_photo": "/uploads/bike.webp",
+        },
+      });
+      expect(ride.driverPhoto, "/uploads/face.jpg");
+      expect(ride.driverVehiclePhoto, "/uploads/bike.webp");
+
+      // Absent snapshot → both stay null.
+      final bare = Ride.fromJson(const {
+        "id": 48,
+        "customer_id": 9,
+        "driver_id": 0,
+        "status": "requested",
+        "pickup_lat": 11.5564,
+        "pickup_lng": 104.9282,
+        "pickup_address": "Central Market",
+        "dropoff_lat": 11.5449,
+        "dropoff_lng": 104.8922,
+        "dropoff_address": "Airport",
+      });
+      expect(bare.driverPhoto, isNull);
+      expect(bare.driverVehiclePhoto, isNull);
     });
 
     test("toJson round-trips through fromJson", () {
@@ -634,6 +696,41 @@ void main() {
         "price_per_km": 1.10,
       });
       expect(result.data!.carModel, "Yamaha Sirius");
+    });
+
+    test("updateVehiclePhoto POSTs a multipart 'photo' to /api/drivers/"
+        "vehicle-photo and parses the driver", () async {
+      late RequestOptions captured;
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final repo = DriverRepo(_clientWith((options) {
+        captured = options;
+        return _ok(const {
+          "id": 9,
+          "user_id": 6,
+          "car_model": "Honda Dream",
+          "plate": "PP-9Z-9999",
+          "license_no": "L-11122",
+          "verified": false,
+          "online": false,
+          "price_per_km": "1.10",
+          "vehicle_photo": "/uploads/fresh.png",
+        });
+      }));
+
+      final result = await repo.updateVehiclePhoto(
+        bytes: bytes,
+        filename: "bike.png",
+        mimeType: "image/png",
+      );
+
+      expect(captured.method, "POST");
+      expect(captured.uri.path, "/api/drivers/vehicle-photo");
+      final form = captured.data as FormData;
+      expect(form.files.single.key, "photo");
+      expect(form.files.single.value.filename, "bike.png");
+      expect(form.files.single.value.length, bytes.length);
+      expect(result.isOk, isTrue);
+      expect(result.data!.vehiclePhoto, "/uploads/fresh.png");
     });
 
     test("setOnline patches /api/drivers/online with location when given",

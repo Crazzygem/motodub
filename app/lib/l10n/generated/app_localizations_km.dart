@@ -512,6 +512,9 @@ class AppLocalizationsKm extends AppLocalizations {
   String get editVehicleTooltip => 'កែសម្រួលយានយន្ត';
 
   @override
+  String get updateVehiclePhotoItem => 'បន្ទាន់សម័យរូបភាពយានយន្ត';
+
+  @override
   String get licenseRow => 'អាជ្ញាបណ្ណ';
 
   @override

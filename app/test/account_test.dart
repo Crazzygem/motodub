@@ -88,6 +88,18 @@ const _vehicle = Driver(
   pricePerKm: 1.25,
 );
 
+const _vehicleWithPhoto = Driver(
+  id: 4,
+  userId: 40,
+  carModel: "Honda Dream 2020",
+  plate: "PP-1A-2345",
+  licenseNo: "KH-DL-1111",
+  verified: true,
+  online: false,
+  pricePerKm: 1.25,
+  vehiclePhoto: "/uploads/bike.png",
+);
+
 const _dara = Driver(
   id: 1,
   userId: 10,
@@ -209,8 +221,10 @@ class _StubDriverRepo extends DriverRepo {
 
   ApiResult<Driver>? meResult;
   ApiResult<Driver>? updateResult;
+  ApiResult<Driver>? photoResult;
 
   final List<Map<String, dynamic>> updateCalls = [];
+  final List<Uint8List> vehiclePhotoBytes = [];
 
   @override
   Future<ApiResult<Driver>> me() async =>
@@ -240,6 +254,16 @@ class _StubDriverRepo extends DriverRepo {
           online: false,
           pricePerKm: 1.3,
         ));
+  }
+
+  @override
+  Future<ApiResult<Driver>> updateVehiclePhoto({
+    required Uint8List bytes,
+    String filename = "vehicle.jpg",
+    String mimeType = "image/jpeg",
+  }) async {
+    vehiclePhotoBytes.add(bytes);
+    return photoResult ?? const ApiResult.ok(_vehicleWithPhoto);
   }
 }
 
@@ -788,6 +812,58 @@ void main() {
 
       expect(find.text("No vehicle yet"), findsOneWidget);
       expect(find.byTooltip("Edit vehicle"), findsNothing);
+    });
+
+    testWidgets("update-vehicle-photo row picks, uploads through the repo "
+        "and previews the server truth", (tester) async {
+      final driverRepo = _StubDriverRepo(meResult: ApiResult.ok(_vehicle));
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+        picker: () async => XFile.fromData(
+          _png,
+          name: "bike.png",
+          mimeType: "image/png",
+        ),
+      );
+      expect(find.byKey(const Key("vehicle-photo-thumb")), findsNothing);
+
+      await tester.tap(find.byKey(const Key("vehicle-photo-row")));
+      await tester.pumpAndSettle();
+
+      expect(driverRepo.vehiclePhotoBytes.single, _png);
+      // Server-truth vehicle_photo renders as the section thumbnail.
+      expect(find.byKey(const Key("vehicle-photo-thumb")), findsOneWidget);
+    });
+
+    testWidgets("a failed vehicle-photo upload surfaces the mapped error",
+        (tester) async {
+      final driverRepo = _StubDriverRepo(meResult: ApiResult.ok(_vehicle))
+        ..photoResult = const ApiResult.err(
+          "VALIDATION_ERROR",
+          "Only jpeg, png or webp images are allowed",
+        );
+      await _pump(
+        tester,
+        session: _session(role: "driver"),
+        driverRepo: driverRepo,
+        picker: () async => XFile.fromData(
+          _png,
+          name: "bike.png",
+          mimeType: "image/png",
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key("vehicle-photo-row")));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text("Only jpeg, png or webp images are allowed"),
+        findsOneWidget, // SnackBar
+      );
+      // No preview without server truth.
+      expect(find.byKey(const Key("vehicle-photo-thumb")), findsNothing);
     });
   });
 }

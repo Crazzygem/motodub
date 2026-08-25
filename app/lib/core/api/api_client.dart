@@ -11,6 +11,13 @@ const String apiBaseUrl = String.fromEnvironment(
   defaultValue: "http://10.0.2.2:3000",
 );
 
+/// Server-stored photos arrive as relative `/uploads/…` URLs — resolve them
+/// against [apiBaseUrl]; absolute URLs pass through untouched.
+String resolveUploadUrl(String url) =>
+    url.startsWith("http://") || url.startsWith("https://")
+        ? url
+        : "$apiBaseUrl$url";
+
 /// Server answered with success:false (or the request never reached it).
 class ApiException implements Exception {
   final String code;

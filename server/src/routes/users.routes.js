@@ -1,11 +1,7 @@
-import path from "node:path";
-import crypto from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
-import multer from "multer";
 import { validate } from "../middlewares/validate.js";
-import { fail } from "../utils/envelope.js";
-import { UPLOADS_DIR } from "../config/uploads.js";
+import { imageUpload } from "../middlewares/imageUpload.js";
 import * as users from "../controllers/users.controller.js";
 
 const router = Router();
@@ -33,34 +29,7 @@ const changePasswordSchema = z.object({
 
 // POST /api/users/me/avatar — uuid filename, extension derived from the
 // whitelisted mimetype only (never from the client's original name).
-const IMAGE_EXTENSIONS = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-};
-
-const avatarUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-    filename: (_req, file, cb) =>
-      cb(null, `${crypto.randomUUID()}${IMAGE_EXTENSIONS[file.mimetype]}`),
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (!IMAGE_EXTENSIONS[file.mimetype]) {
-      return cb(new Error("Only jpeg, png or webp images are allowed"));
-    }
-    return cb(null, true);
-  },
-}).single("avatar");
-
-function handleAvatarUpload(req, res, next) {
-  avatarUpload(req, res, (err) => {
-    if (!err) return next();
-    // Both rejection modes (wrong type / >5MB) surface as VALIDATION_ERROR.
-    return fail(res, "VALIDATION_ERROR", err.message);
-  });
-}
+const handleAvatarUpload = imageUpload("avatar");
 
 router.post(
   "/users/fcm-token",

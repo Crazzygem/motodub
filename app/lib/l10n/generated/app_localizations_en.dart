@@ -510,6 +510,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editVehicleTooltip => 'Edit vehicle';
 
   @override
+  String get updateVehiclePhotoItem => 'Update vehicle photo';
+
+  @override
   String get licenseRow => 'License';
 
   @override

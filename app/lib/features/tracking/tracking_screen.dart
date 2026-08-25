@@ -10,6 +10,7 @@ import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_sheet.dart" show kOsmTileUrl;
 import "../driver/request_card.dart" show etaMinutesForKm, haversineKm;
+import "../shared/driver_photo_avatar.dart";
 import "tracking_provider.dart";
 
 /// Live tracking (Task 5.1): flutter_map with pickup/dropoff pins, dashed
@@ -429,11 +430,9 @@ class _DriverCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: tokensOf(context).card,
-                child: Icon(Icons.local_taxi_rounded,
-                    color: tokensOf(context).textSecondary, size: 22),
+              DriverPhotoAvatar(
+                vehiclePhoto: ride.driverVehiclePhoto,
+                photo: ride.driverPhoto,
               ),
               const SizedBox(width: 12),
               Expanded(

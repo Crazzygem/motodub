@@ -23,6 +23,8 @@ class Ride {
     this.driverPhone,
     this.driverCarModel,
     this.driverPlate,
+    this.driverPhoto,
+    this.driverVehiclePhoto,
   });
 
   final int id;
@@ -46,11 +48,14 @@ class Ride {
   final String? customerName;
   final double? customerAvgRating;
   // Driver snapshot from GET /api/rides/{id} (Task 5.1 tracking card) —
-  // car/plate come off drivers, name/phone off users; null when absent.
+  // car/plate/vehicle_photo come off drivers, name/phone/photo off users;
+  // null when absent.
   final String? driverName;
   final String? driverPhone;
   final String? driverCarModel;
   final String? driverPlate;
+  final String? driverPhoto; // users.photo — avatar circle fallback
+  final String? driverVehiclePhoto; // drivers.vehicle_photo
 
   static Ride fromJson(dynamic json) {
     final map = json as Map<String, dynamic>;
@@ -77,6 +82,8 @@ class Ride {
       driverPhone: _driverString(map, "phone"),
       driverCarModel: _driverString(map, "car_model"),
       driverPlate: _driverString(map, "plate"),
+      driverPhoto: _driverString(map, "photo"),
+      driverVehiclePhoto: _driverString(map, "vehicle_photo"),
     );
   }
 

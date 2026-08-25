@@ -3,6 +3,7 @@ import "dart:ui";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../core/api/api_client.dart" show resolveUploadUrl;
 import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
@@ -57,6 +58,7 @@ class DriverCard extends StatelessWidget {
               _photo(),
               Positioned.fill(child: _shade()),
               Positioned(top: 18, left: 18, child: _watermark()),
+              Positioned(top: 14, right: 14, child: _avatarCircle()),
               Positioned(left: 18, right: 18, bottom: 18, child: _infoBlock(context)),
             ],
           ),
@@ -67,22 +69,69 @@ class DriverCard extends StatelessWidget {
 
   // --- layers -------------------------------------------------------------
 
+  /// Card hero: the driver's vehicle photo when one was uploaded. Relative
+  /// `/uploads/…` URLs resolve against the API base; anything that isn't a
+  /// usable URL — or fails to load — degrades silently to the taxi icon.
   Widget _photo() {
-    final url = driver?.photo?.trim();
-    if (url == null || url.isEmpty) return _photoFallback();
-    final uri = Uri.tryParse(url);
-    if (uri == null || (uri.scheme != "http" && uri.scheme != "https")) {
-      return _photoFallback();
+    final raw = driver?.vehiclePhoto?.trim();
+    if (raw == null || raw.isEmpty) return _photoFallback();
+    // Relative server paths start with "/"; anything else must carry a
+    // real http(s) scheme or it's broken.
+    if (!raw.startsWith("/")) {
+      final uri = Uri.tryParse(raw);
+      if (uri == null || (uri.scheme != "http" && uri.scheme != "https")) {
+        return _photoFallback();
+      }
     }
     return ColorFiltered(
       colorFilter: const ColorFilter.matrix(_saturation90),
       child: Image.network(
-        url,
+        resolveUploadUrl(raw),
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => _photoFallback(),
       ),
     );
   }
+
+  /// Small identity circle at the card top: users.photo with an initials
+  /// tile fallback (DESIGN §8 — no broken-image icons, ever).
+  Widget _avatarCircle() {
+    final raw = driver?.photo?.trim();
+    final hasPhoto = raw != null &&
+        raw.isNotEmpty &&
+        (raw.startsWith("/") ||
+            raw.startsWith("http://") ||
+            raw.startsWith("https://"));
+    return Container(
+      key: const Key("driver-card-avatar"),
+      width: 38,
+      height: 38,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.ink.withValues(alpha: .55),
+        border: Border.all(color: Colors.white.withValues(alpha: .6)),
+      ),
+      child: hasPhoto
+          ? Image.network(
+              resolveUploadUrl(raw),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _initialsTile(),
+            )
+          : _initialsTile(),
+    );
+  }
+
+  Widget _initialsTile() => Center(
+        child: Text(
+          _initialsFor(driver?.name),
+          style: GoogleFonts.sora(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      );
 
   Widget _photoFallback() {
     return const ColoredBox(
@@ -256,6 +305,15 @@ class DriverCard extends StatelessWidget {
 
   String _etaValue(int? eta, AppLocalizations s) =>
       (eta == null || eta <= 0) ? "—" : s.etaMinutes(eta);
+
+  /// First letters of the first two name words ("Dara Sok" → "DS").
+  String _initialsFor(String? name) {
+    final words =
+        name?.trim().split(RegExp(r"\s+")).where((w) => w.isNotEmpty).toList() ??
+            const [];
+    if (words.isEmpty) return "?";
+    return words.take(2).map((w) => w[0].toUpperCase()).join();
+  }
 }
 
 /// Translucent blurred backing shared by the rating and ETA chips (§5 glass).
