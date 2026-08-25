@@ -10,7 +10,7 @@ class AppLocalizationsKm extends AppLocalizations {
   AppLocalizationsKm([String locale = 'km']) : super(locale);
 
   @override
-  String get navDeck => 'ជ្រើសរើស';
+  String get navDeck => 'អ្នកបើកបរ';
 
   @override
   String get navHistory => 'ប្រវត្តិ';
@@ -100,7 +100,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get greetingAfternoon => 'ទិវាសួស្តី';
 
   @override
-  String get greetingEvening => 'សាយណ្ហសួស្តី';
+  String get greetingEvening => 'រាត្រីសួស្តី';
 
   @override
   String greetingWithName(String part, String name) {
@@ -109,12 +109,6 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get findYourRide => 'ស្វែងរកដំណើររបស់អ្នកនៅខាងក្រោម';
-
-  @override
-  String get hintSwipeRightBook => 'អូសទៅស្តាំដើម្បីកក់';
-
-  @override
-  String get hintLeftPass => 'អូសទៅឆ្វេងដើម្បីបដិសេធ';
 
   @override
   String get bookStamp => 'កក់';

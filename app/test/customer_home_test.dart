@@ -108,7 +108,7 @@ void main() {
     expect(find.text("Dara Sok"), findsOneWidget);
   });
 
-  testWidgets("greets the session's first name and shows the deck hints",
+  testWidgets("greets the session's first name and shows no deck hints",
       (tester) async {
     await _pump(tester);
 
@@ -121,11 +121,11 @@ void main() {
     expect(greeting, endsWith(", Dara"));
     expect(find.text("Find your ride below"), findsOneWidget);
 
-    // Gesture hint chips (green right / red left) under the deck header.
-    expect(find.text("Swipe right to book"), findsOneWidget);
-    expect(find.text("Left to pass"), findsOneWidget);
-    expect(find.byIcon(Icons.swipe_right_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.swipe_left_rounded), findsOneWidget);
+    // The old gesture hint chips are gone from the deck header.
+    expect(find.text("Swipe right to book"), findsNothing);
+    expect(find.text("Left to pass"), findsNothing);
+    expect(find.byIcon(Icons.swipe_right_rounded), findsNothing);
+    expect(find.byIcon(Icons.swipe_left_rounded), findsNothing);
   });
 
   testWidgets("greetingFor picks the right time of day and first name",

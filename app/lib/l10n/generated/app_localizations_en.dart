@@ -111,12 +111,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findYourRide => 'Find your ride below';
 
   @override
-  String get hintSwipeRightBook => 'Swipe right to book';
-
-  @override
-  String get hintLeftPass => 'Left to pass';
-
-  @override
   String get bookStamp => 'BOOK';
 
   @override

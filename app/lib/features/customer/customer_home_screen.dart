@@ -3,7 +3,6 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/auth/auth_state.dart";
 import "../../core/l10n/l10n.dart";
-import "../../core/theme/app_theme.dart";
 import "../account/account_screen.dart";
 import "../booking/booking_sheet.dart";
 import "../deck/deck_provider.dart";
@@ -114,27 +113,6 @@ class _DeckTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            // Wrap, not Row — on narrow screens the chips flow onto a
-            // second line instead of overflowing the deck header.
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _HintChip(
-                  icon: Icons.swipe_right_rounded,
-                  label: l10n.hintSwipeRightBook,
-                  tint: AppColors.bookGreen,
-                ),
-                _HintChip(
-                  icon: Icons.swipe_left_rounded,
-                  label: l10n.hintLeftPass,
-                  tint: AppColors.passRed,
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: SwipeDeck(
               onSwipedRight: (driver) {
@@ -142,44 +120,6 @@ class _DeckTab extends ConsumerWidget {
                 showBookingSheet(context, driver);
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Small tinted pill explaining the deck gesture (§5 chips).
-class _HintChip extends StatelessWidget {
-  const _HintChip({
-    required this.icon,
-    required this.label,
-    required this.tint,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: tint),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: tint, fontWeight: FontWeight.w600),
           ),
         ],
       ),

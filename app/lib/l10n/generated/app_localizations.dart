@@ -296,18 +296,6 @@ abstract class AppLocalizations {
   /// **'Find your ride below'**
   String get findYourRide;
 
-  /// No description provided for @hintSwipeRightBook.
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe right to book'**
-  String get hintSwipeRightBook;
-
-  /// No description provided for @hintLeftPass.
-  ///
-  /// In en, this message translates to:
-  /// **'Left to pass'**
-  String get hintLeftPass;
-
   /// No description provided for @bookStamp.
   ///
   /// In en, this message translates to:

@@ -43,8 +43,6 @@
     }
   },
   "findYourRide": "Find your ride below",
-  "hintSwipeRightBook": "Swipe right to book",
-  "hintLeftPass": "Left to pass",
   "bookStamp": "BOOK",
   "passStamp": "PASS",
   "noDriversOnlineTitle": "No drivers online",
