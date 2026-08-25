@@ -1,6 +1,10 @@
+import path from "node:path";
+import fsp from "node:fs/promises";
 import { Op } from "sequelize";
 import { Driver, User, Ride } from "../models/index.js";
 import { haversineKm, etaMinutes } from "../utils/distance.js";
+import { vehiclePhotosOf } from "../utils/vehiclePhotos.js";
+import { UPLOADS_DIR } from "../config/uploads.js";
 
 function businessError(code, message) {
   const err = new Error(message);
@@ -27,6 +31,7 @@ function toCard(driver, distanceKm) {
     car_model: driver.car_model,
     plate: driver.plate,
     vehicle_photo: driver.vehicle_photo ?? null,
+    vehicle_photos: vehiclePhotosOf(driver),
     price_per_km: Number(driver.price_per_km),
     distance_km: round(distanceKm),
     eta_minutes: etaMinutes(distanceKm),
@@ -87,12 +92,80 @@ export async function getOwnProfile(userId) {
 
 /**
  * POST /api/drivers/vehicle-photo — multer already wrote the file; record
- * its URL on drivers.vehicle_photo and answer the updated row.
+ * its URL on drivers.vehicle_photo and answer the updated row. The cover
+ * stays canonical here: it replaces the cover AND resets the gallery to
+ * exactly that photo.
  */
 export async function setVehiclePhoto(userId, filename) {
   const driver = await requireDriver(userId);
-  await driver.update({ vehicle_photo: `/uploads/${filename}` });
+  const url = `/uploads/${filename}`;
+  await driver.update({ vehicle_photo: url, vehicle_photos: [url] });
   return driver;
+}
+
+// Tinder-style multi-photo card: the deck hero cycles through up to six
+// vehicle photos; drivers.vehicle_photo stays the cover (first element).
+const MAX_VEHICLE_PHOTOS = 6;
+
+/** Gallery rows as an array, falling back to the legacy single cover. */
+function galleryOf(driver) {
+  const photos = driver.vehicle_photos;
+  if (Array.isArray(photos)) return [...photos];
+  const legacy = driver.vehicle_photo;
+  return typeof legacy === "string" && legacy.length > 0 ? [legacy] : [];
+}
+
+/**
+ * POST /api/drivers/photos — multer already wrote every file; APPEND their
+ * URLs to the gallery, capping at MAX_VEHICLE_PHOTOS total, and keep the
+ * cover synced to the first element.
+ */
+export async function addVehiclePhotos(userId, filenames) {
+  if (!Array.isArray(filenames) || filenames.length === 0) {
+    throw businessError("VALIDATION_ERROR", "At least one photo is required");
+  }
+  const driver = await requireDriver(userId);
+  const current = galleryOf(driver);
+  if (current.length + filenames.length > MAX_VEHICLE_PHOTOS) {
+    throw businessError(
+      "VALIDATION_ERROR",
+      `Up to ${MAX_VEHICLE_PHOTOS} vehicle photos are allowed`,
+    );
+  }
+  const photos = [...current, ...filenames.map((f) => `/uploads/${f}`)];
+  await driver.update({ vehicle_photos: photos, vehicle_photo: photos[0] });
+  return driver;
+}
+
+/**
+ * DELETE /api/drivers/photos — drop the gallery photo at [index], unlink its
+ * file best-effort, re-sync the cover (first element; null when empty).
+ * VALIDATION_ERROR when the index is out of range.
+ */
+export async function removeVehiclePhoto(userId, index) {
+  const driver = await requireDriver(userId);
+  const photos = galleryOf(driver);
+  if (!Number.isInteger(index) || index < 0 || index >= photos.length) {
+    throw businessError("VALIDATION_ERROR", "Photo index out of range");
+  }
+  const [removed] = photos.splice(index, 1);
+  await driver.update({
+    vehicle_photos: photos,
+    vehicle_photo: photos[0] ?? null,
+  });
+  await unlinkUploadBestEffort(removed);
+  return driver;
+}
+
+/** Remove a stored /uploads file; a missing or odd URL never fails the API. */
+async function unlinkUploadBestEffort(url) {
+  if (typeof url !== "string" || !url.startsWith("/uploads/")) return;
+  try {
+    // basename only — stored URLs must never escape UPLOADS_DIR.
+    await fsp.rm(path.join(UPLOADS_DIR, path.basename(url)));
+  } catch {
+    // best-effort by design
+  }
 }
 
 /**

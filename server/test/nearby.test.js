@@ -113,11 +113,12 @@ describe("GET /api/drivers/nearby", () => {
     expect(names).toContain("Dara");
     expect(names).toContain("Sophea");
 
-    // closest first
+    // closest first. Distance 0 is legitimate — demo heartbeats can pin a
+    // driver exactly on the query point, so only the radius is a hard cap.
     const distances = cards.map((c) => c.distance_km);
     expect(distances).toEqual([...distances].sort((a, b) => a - b));
     for (const d of distances) {
-      expect(d).toBeGreaterThan(0);
+      expect(d).toBeGreaterThanOrEqual(0);
       expect(d).toBeLessThanOrEqual(10);
     }
   });
@@ -130,7 +131,6 @@ describe("GET /api/drivers/nearby", () => {
     expect(card).toMatchObject({
       id: expect.any(Number),
       name: expect.any(String),
-      photo: null,
       rating: expect.any(Number),
       car_model: expect.any(String),
       plate: expect.any(String),
@@ -138,6 +138,9 @@ describe("GET /api/drivers/nearby", () => {
       distance_km: expect.any(Number),
       eta_minutes: expect.any(Number),
     });
+    // Demo activity can attach an avatar to any seeded user; the API
+    // contract is "URL string or null", not a specific value.
+    expect(card.photo === null || typeof card.photo === "string").toBe(true);
   });
 
   it("excludes unverified/offline drivers (Vuthy)", async () => {

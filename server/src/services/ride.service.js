@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import { Driver, Ride, User } from "../models/index.js";
 import { sequelize } from "../config/db.js";
 import { notifyRide } from "../realtime/events.js";
+import { vehiclePhotosOf } from "../utils/vehiclePhotos.js";
 
 // ARCHITECTURE §2 invariant: a ride is "active" from requested → in_progress.
 const ACTIVE_RIDE_STATUSES = ["requested", "accepted", "en_route", "in_progress"];
@@ -295,9 +296,11 @@ export async function getForViewer(viewerId, viewerRole, rideId) {
   // car_model/plate/vehicle_photo live on drivers (keyed by user_id), not users.
   const vehicle = await Driver.findOne({
     where: { user_id: ride.driver_id },
-    attributes: ["car_model", "plate", "vehicle_photo"],
+    attributes: ["car_model", "plate", "vehicle_photo", "vehicle_photos"],
   });
 
+  // Tracking keeps showing the COVER; the gallery rides along so payloads
+  // stay compatible with the multi-photo card.
   return {
     ...ride.toJSON(),
     driver: {
@@ -305,6 +308,7 @@ export async function getForViewer(viewerId, viewerRole, rideId) {
       car_model: vehicle?.car_model ?? null,
       plate: vehicle?.plate ?? null,
       vehicle_photo: vehicle?.vehicle_photo ?? null,
+      vehicle_photos: vehiclePhotosOf(vehicle),
     },
   };
 }

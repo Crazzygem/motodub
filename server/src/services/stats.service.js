@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { sequelize } from "../config/db.js";
 import { Driver, Ride, User } from "../models/index.js";
+import { vehiclePhotosOf } from "../utils/vehiclePhotos.js";
 
 function businessError(code, message) {
   const err = new Error(message);
@@ -76,6 +77,7 @@ function toDriverItem(driver) {
     car_model: driver.car_model,
     plate: driver.plate,
     vehicle_photo: driver.vehicle_photo ?? null,
+    vehicle_photos: vehiclePhotosOf(driver),
     lat: driver.lat === null ? null : Number(driver.lat),
     lng: driver.lng === null ? null : Number(driver.lng),
     verified: Boolean(driver.verified),

@@ -298,6 +298,8 @@ describe("GET /api/admin/drivers", () => {
       car_model: vuthyRow.car_model,
       plate: vuthyRow.plate,
       vehicle_photo: vuthyRow.vehicle_photo ?? null,
+      // Multi-photo gallery payload — [] for pre-column rows without a cover.
+      vehicle_photos: vuthyRow.vehicle_photo ? [vuthyRow.vehicle_photo] : [],
       lat: vuthyRow.lat === null ? null : Number(vuthyRow.lat),
       lng: vuthyRow.lng === null ? null : Number(vuthyRow.lng),
       verified: false,

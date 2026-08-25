@@ -106,3 +106,37 @@ export async function uploadVehiclePhoto(req, res) {
     return fail(res, err.code, err.message);
   }
 }
+
+// POST /api/drivers/photos — multer wrote every file; the service appends
+// them to the gallery (cap enforced there) and answers the updated row.
+export async function uploadPhotos(req, res) {
+  try {
+    const filenames = (req.files ?? []).map((file) => file.filename);
+    return ok(
+      res,
+      await driverService.addVehiclePhotos(req.user.id, filenames),
+    );
+  } catch (err) {
+    if (!err.code) throw err;
+    return fail(res, err.code, err.message);
+  }
+}
+
+// DELETE /api/drivers/photos — body {index}; removes that gallery photo.
+const deletePhotoSchema = z.object({
+  index: z.coerce.number().int().min(0),
+});
+
+export async function deletePhoto(req, res) {
+  try {
+    const body = parseBody(deletePhotoSchema, req, res);
+    if (body === null) return;
+    return ok(
+      res,
+      await driverService.removeVehiclePhoto(req.user.id, body.index),
+    );
+  } catch (err) {
+    if (!err.code) throw err;
+    return fail(res, err.code, err.message);
+  }
+}
