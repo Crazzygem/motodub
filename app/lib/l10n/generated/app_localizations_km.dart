@@ -111,12 +111,6 @@ class AppLocalizationsKm extends AppLocalizations {
   String get findYourRide => 'ស្វែងរកដំណើររបស់អ្នកនៅខាងក្រោម';
 
   @override
-  String get bookStamp => 'កក់';
-
-  @override
-  String get passStamp => 'បដិសេធ';
-
-  @override
   String get noDriversOnlineTitle => 'គ្មានអ្នកបើកបរអនឡាញ';
 
   @override

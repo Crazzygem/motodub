@@ -33,8 +33,6 @@
   "greetingEvening": "រាត្រីសួស្តី",
   "greetingWithName": "{part}, {name}",
   "findYourRide": "ស្វែងរកដំណើររបស់អ្នកនៅខាងក្រោម",
-  "bookStamp": "កក់",
-  "passStamp": "បដិសេធ",
   "noDriversOnlineTitle": "គ្មានអ្នកបើកបរអនឡាញ",
   "noDriversOnlineHint": "ឥឡូវនេះគ្មានអ្នកបើកបរអនឡាញទេ — អូសដើម្បីផ្ទុកឡើងវិញ",
   "driverFallback": "អ្នកបើកបរ",

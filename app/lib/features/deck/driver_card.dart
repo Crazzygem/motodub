@@ -21,12 +21,19 @@ const List<double> _saturation90 = [
 ];
 
 /// The deck showpiece — DESIGN.md §5 "Driver swipe card": full-bleed photo,
-/// gradient shade, watermark, then name/rating, car line, ETA + asking rate.
-/// Empty/invalid data degrades to placeholders instead of crashing.
+/// gradient shade, optional swipe-direction wash ([overlay]), watermark, then
+/// name/rating, car line, ETA + asking rate. Empty/invalid data degrades to
+/// placeholders instead of crashing.
 class DriverCard extends StatefulWidget {
-  const DriverCard({super.key, required this.driver});
+  const DriverCard({super.key, required this.driver, this.overlay});
 
   final Driver? driver;
+
+  /// Optional full-card decoration painted above photo and shade but below
+  /// every content layer (watermark/avatar/info) — the deck's swipe
+  /// direction wash rides here so text stays readable at full tint.
+  /// Always rendered behind an IgnorePointer by the card itself.
+  final Widget? overlay;
 
   @override
   State<DriverCard> createState() => _DriverCardState();
@@ -76,6 +83,8 @@ class _DriverCardState extends State<DriverCard> {
               _photo(context),
               // Click-through: the shade must not eat the photo's tap target.
               Positioned.fill(child: IgnorePointer(child: _shade())),
+              if (widget.overlay != null)
+                Positioned.fill(child: IgnorePointer(child: widget.overlay!)),
               Positioned(top: 18, left: 18, child: _watermark()),
               Positioned(top: 14, right: 14, child: _avatarCircle()),
               Positioned(left: 18, right: 18, bottom: 18, child: _infoBlock(context)),

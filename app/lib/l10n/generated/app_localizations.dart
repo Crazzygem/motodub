@@ -296,18 +296,6 @@ abstract class AppLocalizations {
   /// **'Find your ride below'**
   String get findYourRide;
 
-  /// No description provided for @bookStamp.
-  ///
-  /// In en, this message translates to:
-  /// **'BOOK'**
-  String get bookStamp;
-
-  /// No description provided for @passStamp.
-  ///
-  /// In en, this message translates to:
-  /// **'PASS'**
-  String get passStamp;
-
   /// No description provided for @noDriversOnlineTitle.
   ///
   /// In en, this message translates to:

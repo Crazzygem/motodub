@@ -43,8 +43,6 @@
     }
   },
   "findYourRide": "Find your ride below",
-  "bookStamp": "BOOK",
-  "passStamp": "PASS",
   "noDriversOnlineTitle": "No drivers online",
   "noDriversOnlineHint": "No drivers online right now — pull to refresh",
   "driverFallback": "Driver",

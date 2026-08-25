@@ -122,6 +122,88 @@ void main() {
     expect(find.text("Dara Sok"), findsOneWidget); // never popped
   });
 
+  // Seth directive: BOOK/PASS text stamps replaced by a swipe-direction
+  // gradient wash — green toward commit-right, red toward commit-left.
+  group("swipe direction wash", () {
+    Future<void> pumpDeck(WidgetTester tester) async {
+      await tester.pumpWidget(_harness(cards: [_driver(1, "Dara Sok")]));
+      await tester.pumpAndSettle();
+    }
+
+    /// Drags part-way (under both release thresholds) and renders one frame
+    /// mid-wash — the first spring-back frame still carries the full drag.
+    Future<void> dragPartWay(WidgetTester tester, Offset delta) async {
+      await tester.timedDrag(
+        find.text("Dara Sok"),
+        delta,
+        const Duration(milliseconds: 200),
+      );
+      await tester.pump();
+    }
+
+    LinearGradient washGradient(WidgetTester tester) =>
+        (tester.widget<DecoratedBox>(find.descendant(
+              of: find.byKey(const Key("deck-swipe-wash")),
+              matching: find.byType(DecoratedBox),
+            )).decoration as BoxDecoration)
+            .gradient! as LinearGradient;
+
+    double washOpacity(WidgetTester tester) => tester
+        .widget<Opacity>(find.descendant(
+          of: find.byKey(const Key("deck-swipe-wash")),
+          matching: find.byType(Opacity),
+        ))
+        .opacity;
+
+    void expectHue(Color tint, {required bool green}) {
+      expect(green ? tint.g : tint.r, greaterThan(tint.b));
+      if (green) {
+        expect(tint.g, greaterThan(tint.r));
+      } else {
+        expect(tint.r, greaterThan(tint.g));
+      }
+    }
+
+    testWidgets("stamp text is gone — no BOOK or PASS anywhere, even mid-drag",
+        (tester) async {
+      await pumpDeck(tester);
+      await dragPartWay(tester, const Offset(100, 0));
+
+      expect(find.text("BOOK"), findsNothing);
+      expect(find.text("PASS"), findsNothing);
+    });
+
+    testWidgets("wash is invisible at rest", (tester) async {
+      await pumpDeck(tester);
+
+      expect(washOpacity(tester), 0);
+    });
+
+    testWidgets("right drag washes the card green toward commit", (tester) async {
+      await pumpDeck(tester);
+      await dragPartWay(tester, const Offset(100, 0));
+
+      expect(washOpacity(tester), greaterThan(.5));
+      final gradient = washGradient(tester);
+      expectHue(gradient.colors.last, green: true); // leading edge carries tint
+      expect(gradient.colors.first.a, 0); // trailing edge stays clear
+      await tester.pumpAndSettle(); // spring-back unwinds
+      expect(washOpacity(tester), 0);
+    });
+
+    testWidgets("left drag washes the card red toward commit", (tester) async {
+      await pumpDeck(tester);
+      await dragPartWay(tester, const Offset(-100, 0));
+
+      expect(washOpacity(tester), greaterThan(.5));
+      final gradient = washGradient(tester);
+      expectHue(gradient.colors.last, green: false);
+      expect(gradient.colors.first.a, 0);
+      await tester.pumpAndSettle();
+      expect(washOpacity(tester), 0);
+    });
+  });
+
   testWidgets("empty deck shows the friendly empty state", (tester) async {
     await tester.pumpWidget(_harness(cards: []));
     await tester.pumpAndSettle();

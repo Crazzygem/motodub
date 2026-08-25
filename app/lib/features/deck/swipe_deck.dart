@@ -239,6 +239,10 @@ class _TopCard extends StatelessWidget {
   /// `clamp(|dx|/110, 0, 1)` from DESIGN.md §6.
   double get _overlayOpacity => (offset.dx.abs() / 110).clamp(0.0, 1.0);
 
+  /// Signed wash progress: sign picks the color, magnitude the ramp.
+  double get _washProgress =>
+      offset.dx < 0 ? -_overlayOpacity : _overlayOpacity;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -252,30 +256,12 @@ class _TopCard extends StatelessWidget {
           child: Transform.rotate(
             alignment: Alignment.center,
             angle: angle,
-            child: Stack(
-              children: [
-                DriverCard(driver: driver),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: _StampOverlay(
-                      label: context.l10n.bookStamp,
-                      color: AppColors.bookGreen,
-                      opacity: offset.dx > 0 ? _overlayOpacity : 0,
-                      tiltLeft: true,
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: _StampOverlay(
-                      label: context.l10n.passStamp,
-                      color: AppColors.passRed,
-                      opacity: offset.dx < 0 ? _overlayOpacity : 0,
-                      tiltLeft: false,
-                    ),
-                  ),
-                ),
-              ],
+            // The direction wash rides inside DriverCard — above photo and
+            // shade, below watermark/info — so copy stays readable at full
+            // tint (same layering philosophy as the dark info gradient).
+            child: DriverCard(
+              driver: driver,
+              overlay: _SwipeWash(progress: _washProgress),
             ),
           ),
         ),
@@ -284,46 +270,31 @@ class _TopCard extends StatelessWidget {
   }
 }
 
-/// BOOK / PASS stamp fading in with drag progress (§6 overlay opacity).
-class _StampOverlay extends StatelessWidget {
-  const _StampOverlay({
-    required this.label,
-    required this.color,
-    required this.opacity,
-    required this.tiltLeft,
-  });
+/// Swipe-direction wash (Seth directive — replaces the §6 BOOK/PASS stamps):
+/// green toward a book commit, red toward a pass commit, ramping with the
+/// same |dx|/110 ease the stamps used. During fly-out the offset runs past
+/// ±110 so the tint pins at full strength, then fades with the card's own
+/// opacity animation as the next card arrives.
+class _SwipeWash extends StatelessWidget {
+  const _SwipeWash({required this.progress});
 
-  final String label;
-  final Color color;
-  final double opacity;
-  final bool tiltLeft;
+  /// Signed drag progress: >0 books (green), <0 passes (red), 0 hides.
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
+    final books = progress >= 0;
+    final tint = books ? AppColors.bookGreen : AppColors.passRed;
+    return Container(
+      key: const Key("deck-swipe-wash"),
       child: Opacity(
-        opacity: opacity,
-        child: Align(
-          alignment: const Alignment(0, -0.62),
-          child: Transform.rotate(
-            angle: tiltLeft ? -0.17 : 0.17,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: color, width: 4),
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white.withValues(alpha: .85),
-              ),
-              child: Text(
-                label,
-                style: GoogleFonts.sora(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                  color: color,
-                ),
-              ),
+        opacity: progress.abs(),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: books ? Alignment.centerLeft : Alignment.centerRight,
+              end: books ? Alignment.centerRight : Alignment.centerLeft,
+              colors: [tint.withValues(alpha: 0), tint.withValues(alpha: .6)],
             ),
           ),
         ),

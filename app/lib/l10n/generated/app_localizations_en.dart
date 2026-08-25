@@ -111,12 +111,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findYourRide => 'Find your ride below';
 
   @override
-  String get bookStamp => 'BOOK';
-
-  @override
-  String get passStamp => 'PASS';
-
-  @override
   String get noDriversOnlineTitle => 'No drivers online';
 
   @override
