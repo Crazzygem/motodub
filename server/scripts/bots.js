@@ -81,6 +81,14 @@ function walk(pos) {
 // Bootstrap — idempotent account/profile/verification setup for bots only.
 // ---------------------------------------------------------------------------
 
+// Deck cards show a tinder-style photo pager, so bots carry vehicle photos
+// too: two CC-licensed moto shots fetched from the Openverse API and pushed
+// through POST /api/drivers/photos. Any trouble here is cosmetic — warn and
+// continue, never crash the demo on photo business.
+const PHOTO_QUERIES = ["motodop phnom penh", "moto delivery cambodia"];
+const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024; // mirrors the server's upload cap
+
 async function ensureAccount({ email, name, phone }, role) {
   try {
     const data = await api("POST", "/api/register", {
@@ -93,6 +101,67 @@ async function ensureAccount({ email, name, phone }, role) {
       body: { email, password: CONFIG.password },
     });
     return data.token;
+  }
+}
+
+/** First CC image URL for a query, or null when the search comes back empty. */
+async function firstPhotoUrl(query) {
+  const res = await fetch(
+    `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&license_type=all-cc&page_size=5`,
+  );
+  if (!res.ok) throw new Error(`openverse HTTP ${res.status} for "${query}"`);
+  const json = await res.json();
+  return json.results?.[0]?.url ?? null;
+}
+
+/** Image bytes as a Blob, or throws unless jpeg/png/webp within the 5MB cap. */
+async function downloadPhoto(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`image HTTP ${res.status}: ${url}`);
+  const type = res.headers.get("content-type")?.split(";")[0];
+  if (!PHOTO_TYPES.has(type)) throw new Error(`unacceptable type ${type}: ${url}`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  if (bytes.length === 0 || bytes.length > PHOTO_MAX_BYTES) {
+    throw new Error(`unacceptable size ${bytes.length}B: ${url}`);
+  }
+  return new Blob([bytes], { type });
+}
+
+/** Multipart POST /api/drivers/photos — same envelope rules as api(). */
+async function uploadPhotos(token, blobs) {
+  const form = new FormData();
+  for (const [i, blob] of blobs.entries()) form.append("photos", blob, `vehicle${i}.jpg`);
+  const res = await fetch(CONFIG.baseUrl + "/api/drivers/photos", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    const err = new Error(json?.error?.message ?? `HTTP ${res.status} /api/drivers/photos`);
+    err.code = json?.error?.code ?? `HTTP_${res.status}`;
+    throw err;
+  }
+  return json.data;
+}
+
+/** Idempotent: fill an empty bot gallery with one photo per query; warn+continue on failure. */
+async function ensureVehiclePhotos(d, row) {
+  if ((row.vehicle_photos?.length ?? 0) > 0) {
+    log("vehicle photos present", `${d.email} (${row.vehicle_photos.length})`);
+    return;
+  }
+  try {
+    const blobs = [];
+    for (const query of PHOTO_QUERIES) {
+      const url = await firstPhotoUrl(query);
+      if (!url) throw new Error(`no openverse result for "${query}"`);
+      blobs.push(await downloadPhoto(url));
+    }
+    const updated = await uploadPhotos(d.token, blobs);
+    log("vehicle photos uploaded", `${d.email}: ${updated.vehicle_photos.join(", ")}`);
+  } catch (err) {
+    log("vehicle photos skipped", `${d.email}: ${err.message}`);
   }
 }
 
@@ -144,6 +213,8 @@ async function bootstrap() {
       log("verified by admin", d.email);
     }
     d.pos = randomPoint();
+    // Photos land while still offline so the first nearby card already paginates.
+    await ensureVehiclePhotos(d, row);
     await api("PATCH", "/api/drivers/online", {
       token: d.token,
       body: { online: true, ...d.pos },
