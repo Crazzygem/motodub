@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release builds get their permissions ONLY from this manifest (debug/
+         profile manifests are not merged into release). Without it every HTTP
+         call fails with SocketException on installed release APKs. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="motodub"
         android:name="${applicationName}"
