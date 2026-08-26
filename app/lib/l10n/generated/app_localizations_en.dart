@@ -627,6 +627,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get botsCardTitle => 'Bot fleet';
+
+  @override
+  String get botsRunning => 'Running';
+
+  @override
+  String get botsStopped => 'Stopped';
+
+  @override
+  String get botsPairsLabel => 'Bot pairs';
+
+  @override
+  String get botsStartButton => 'Start bots';
+
+  @override
+  String get botsStopButton => 'Stop bots';
+
+  @override
+  String get botsUptimeLabel => 'Uptime';
+
+  @override
+  String get botsRidesLabel => 'Rides spawned';
+
+  @override
+  String get botsLastRideLabel => 'Last ride';
+
+  @override
+  String get editDriverTitle => 'Edit driver';
+
+  @override
   String get month1 => 'Jan';
 
   @override

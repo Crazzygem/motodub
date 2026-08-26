@@ -298,6 +298,16 @@
       }
     }
   },
+  "botsCardTitle": "Bot fleet",
+  "botsRunning": "Running",
+  "botsStopped": "Stopped",
+  "botsPairsLabel": "Bot pairs",
+  "botsStartButton": "Start bots",
+  "botsStopButton": "Stop bots",
+  "botsUptimeLabel": "Uptime",
+  "botsRidesLabel": "Rides spawned",
+  "botsLastRideLabel": "Last ride",
+  "editDriverTitle": "Edit driver",
   "month1": "Jan",
   "month2": "Feb",
   "month3": "Mar",

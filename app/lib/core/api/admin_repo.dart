@@ -27,11 +27,44 @@ class AdminStats {
   }
 }
 
+/// Seth directive — GET /api/admin/bots/status snapshot. Wire keys are
+/// camelCase per that contract's documented deviation; [lastRideAt] is an
+/// ISO-8601 string or null before the first spawned ride. Every field but
+/// [running] tolerates absence so DELETE /api/admin/bots' bare
+/// `{running:false}` parses through the same shape.
+class BotsStatus {
+  const BotsStatus({
+    required this.running,
+    this.ridesSpawned = 0,
+    this.uptimeSec = 0,
+    this.lastRideAt,
+  });
+
+  final bool running;
+  final int ridesSpawned;
+  final int uptimeSec;
+
+  /// ISO-8601 timestamp of the most recent bot-spawned ride, null when none.
+  final String? lastRideAt;
+
+  static BotsStatus fromJson(dynamic json) {
+    final map = json as Map<String, dynamic>;
+    return BotsStatus(
+      running: (map["running"] as bool?) ?? false,
+      ridesSpawned: (map["ridesSpawned"] as int?) ?? 0,
+      uptimeSec: (map["uptimeSec"] as int?) ?? 0,
+      lastRideAt: map["lastRideAt"] as String?,
+    );
+  }
+}
+
 /// One row of GET /api/admin/drivers — the verification-table wire shape.
 /// Id semantics are explicit server-side (Task 6.1): [driverId] is the
 /// drivers-row PK (what /admin/drivers/:id/* address); [userId] is users.id.
 /// Task 6.3 adds vehicle identity + last heartbeat position ([lat]/[lng]
-/// are null until a driver reports one) for the live map.
+/// are null until a driver reports one) for the live map. The admin list
+/// carries no license_no today, so [licenseNo] stays null until the PATCH
+/// echo includes it — the edit sheet starts blank in that case.
 class AdminDriver {
   const AdminDriver({
     required this.driverId,
@@ -46,6 +79,7 @@ class AdminDriver {
     this.phone,
     this.carModel,
     this.plate,
+    this.licenseNo,
     this.lat,
     this.lng,
   });
@@ -62,6 +96,7 @@ class AdminDriver {
   final bool online;
   final String? carModel;
   final String? plate;
+  final String? licenseNo;
   final double? lat;
   final double? lng;
 
@@ -80,6 +115,7 @@ class AdminDriver {
       online: (map["online"] as bool?) ?? false,
       carModel: map["car_model"] as String?,
       plate: map["plate"] as String?,
+      licenseNo: map["license_no"] as String?,
       lat: _asDoubleOrNull(map["lat"]),
       lng: _asDoubleOrNull(map["lng"]),
     );
@@ -132,6 +168,36 @@ class AdminRepo {
   Future<ApiResult<AdminDriver>> suspendDriver(int driverRowId) =>
       _client.post<AdminDriver>(
         "/api/admin/drivers/$driverRowId/suspend",
+        parse: AdminDriver.fromJson,
+      );
+
+  /// Seth directive — deploy [count] bot customer/driver pairs. Conflicts
+  /// with a running manager surface as BOT_ALREADY_RUNNING through the
+  /// envelope (documented server choice), not an exception.
+  Future<ApiResult<BotsStatus>> startBots(int count) => _client.post<BotsStatus>(
+        "/api/admin/bots",
+        body: {"count": count},
+        parse: BotsStatus.fromJson,
+      );
+
+  /// Stop the bot manager (offlines its drivers, closes their sockets).
+  Future<ApiResult<BotsStatus>> stopBots() =>
+      _client.delete<BotsStatus>("/api/admin/bots", parse: BotsStatus.fromJson);
+
+  /// Manual-refresh snapshot of the manager (running flag + counters).
+  Future<ApiResult<BotsStatus>> botsStatus() =>
+      _client.get<BotsStatus>("/api/admin/bots/status", parse: BotsStatus.fromJson);
+
+  /// Edit any driver "just like the driver side" — [fields] carries the
+  /// snake_case wire keys the route validates (name, phone, car_model,
+  /// plate, license_no, price_per_km); the response is the fresh row.
+  Future<ApiResult<AdminDriver>> patchDriver(
+    int driverRowId,
+    Map<String, dynamic> fields,
+  ) =>
+      _client.patch<AdminDriver>(
+        "/api/admin/drivers/$driverRowId",
+        body: fields,
         parse: AdminDriver.fromJson,
       );
 }

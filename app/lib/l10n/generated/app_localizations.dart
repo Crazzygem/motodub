@@ -1262,6 +1262,66 @@ abstract class AppLocalizations {
   /// **'\${rate} / km'**
   String vehiclePriceRow(String rate);
 
+  /// No description provided for @botsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bot fleet'**
+  String get botsCardTitle;
+
+  /// No description provided for @botsRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get botsRunning;
+
+  /// No description provided for @botsStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get botsStopped;
+
+  /// No description provided for @botsPairsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bot pairs'**
+  String get botsPairsLabel;
+
+  /// No description provided for @botsStartButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Start bots'**
+  String get botsStartButton;
+
+  /// No description provided for @botsStopButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop bots'**
+  String get botsStopButton;
+
+  /// No description provided for @botsUptimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Uptime'**
+  String get botsUptimeLabel;
+
+  /// No description provided for @botsRidesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rides spawned'**
+  String get botsRidesLabel;
+
+  /// No description provided for @botsLastRideLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last ride'**
+  String get botsLastRideLabel;
+
+  /// No description provided for @editDriverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit driver'**
+  String get editDriverTitle;
+
   /// No description provided for @month1.
   ///
   /// In en, this message translates to:

@@ -92,6 +92,38 @@ class DriversNotifier extends AutoDisposeNotifier<DriversState> {
 
     await _load();
   }
+
+  /// Seth directive — admin edits any driver "just like the driver side".
+  /// Same rhythm as [runAction]: optimistic replace from the server's row,
+  /// then a silent reconcile against fresh truth. Returns the mapped
+  /// failure copy so the sheet keeps its error banner — null on success.
+  Future<String?> editDriver(
+    int driverRowId,
+    Map<String, dynamic> fields,
+  ) async {
+    final result =
+        await ref.read(adminRepoProvider).patchDriver(driverRowId, fields);
+    if (_disposed) return null;
+
+    if (!result.isOk) {
+      final message = localizedErrorFor(
+        lookupAppLocalizations(ref.watch(appLocaleProvider)),
+        result.code,
+        serverMessage: result.message,
+      );
+      state = DriversState(drivers: state.drivers, error: message);
+      return message;
+    }
+
+    final updated = result.data!;
+    final rows = [...(state.drivers ?? const <AdminDriver>[])];
+    final index = rows.indexWhere((d) => d.driverId == updated.driverId);
+    if (index >= 0) rows[index] = updated;
+    state = DriversState(drivers: rows);
+
+    await _load();
+    return null;
+  }
 }
 
 final driversProvider =
@@ -260,6 +292,13 @@ class _DriverRow extends ConsumerWidget {
                   child: Text(s.suspendButton),
                 ),
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                key: Key("edit-${row.driverId}"),
+                tooltip: s.editDriverTitle,
+                onPressed: () => _openEditSheet(context),
+                icon: const Icon(Icons.edit_rounded, size: 20),
+              ),
             ],
           ),
         ],
@@ -326,6 +365,297 @@ class _DriverRow extends ConsumerWidget {
 
     if (confirmed != true) return;
     await ref.read(driversProvider.notifier).runAction(row, verify: verify);
+  }
+
+  /// Seth directive — edit sheet opens pre-filled; the PATCH dispatches
+  /// only from its Save button (same gate-as-modal rule as approve/suspend).
+  Future<void> _openEditSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: tokensOf(context).card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom +
+              MediaQuery.paddingOf(context).bottom,
+        ),
+        child: _EditDriverSheet(driver: row),
+      ),
+    );
+  }
+}
+
+// --- driver edit sheet (account-screen form-sheet conventions) ---------------
+
+Widget _dragHandle(BuildContext context) => Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: context.tokens.line,
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+    );
+
+InputDecoration _field(String label, IconData icon) => InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+      prefixIcon: Icon(icon, size: 18),
+    );
+
+TextFormField _sheetField(
+  BuildContext context, {
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  TextInputType? keyboardType,
+  String? Function(String?)? validator,
+  TextInputAction action = TextInputAction.next,
+}) =>
+    TextFormField(
+      controller: controller,
+      decoration: _field(label, icon),
+      keyboardType: keyboardType,
+      autocorrect: false,
+      textInputAction: action,
+      validator: validator,
+    );
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.passRed.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.passRed.withValues(alpha: .35)),
+      ),
+      child: Text(
+        message,
+        style: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: AppColors.passRed),
+      ),
+    );
+  }
+}
+
+FilledButton _submitButton(
+  BuildContext context, {
+  required String label,
+  required bool busy,
+  required VoidCallback onPressed,
+}) =>
+    FilledButton(
+      onPressed: busy ? null : onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.amber,
+        foregroundColor: AppColors.ink,
+        disabledBackgroundColor: AppColors.amber.withValues(alpha: .4),
+        disabledForegroundColor: AppColors.ink.withValues(alpha: .5),
+        padding: const EdgeInsets.symmetric(vertical: 15),
+      ),
+      child: busy
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(label),
+    );
+
+bool _validPhone(String v) => RegExp(r"^[0-9+][0-9\s\-]{4,19}$").hasMatch(v);
+
+/// PATCH /api/admin/drivers/:id form — six fields, snake_case wire keys.
+/// The server echoes the fresh row, which [DriversNotifier.editDriver]
+/// adopts as server truth before a silent reconcile reload.
+class _EditDriverSheet extends ConsumerStatefulWidget {
+  const _EditDriverSheet({required this.driver});
+
+  final AdminDriver driver;
+
+  @override
+  ConsumerState<_EditDriverSheet> createState() => _EditDriverSheetState();
+}
+
+class _EditDriverSheetState extends ConsumerState<_EditDriverSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.driver.name);
+  late final _phone = TextEditingController(text: widget.driver.phone ?? "");
+  late final _carModel =
+      TextEditingController(text: widget.driver.carModel ?? "");
+  late final _plate = TextEditingController(text: widget.driver.plate ?? "");
+  late final _license =
+      TextEditingController(text: widget.driver.licenseNo ?? "");
+  late final _price = TextEditingController(
+    text: widget.driver.pricePerKm.toStringAsFixed(2),
+  );
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _carModel.dispose();
+    _plate.dispose();
+    _license.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    final error = await ref.read(driversProvider.notifier).editDriver(
+          widget.driver.driverId,
+          {
+            "name": _name.text.trim(),
+            "phone": _phone.text.trim(),
+            "car_model": _carModel.text.trim(),
+            "plate": _plate.text.trim(),
+            "license_no": _license.text.trim(),
+            "price_per_km": double.parse(_price.text.trim()),
+          },
+        );
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _busy = false;
+        _error = error;
+      });
+      return;
+    }
+    Navigator.of(context).pop(); // row already adopted server truth
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.l10n;
+
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .88,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _dragHandle(context),
+                const SizedBox(height: 8),
+                Text(s.editDriverTitle,
+                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 14),
+                _sheetField(
+                  context,
+                  controller: _name,
+                  label: s.nameLabel,
+                  icon: Icons.person_outline_rounded,
+                  validator: (value) {
+                    final v = value?.trim() ?? "";
+                    if (v.isEmpty) return s.enterName;
+                    if (v.length < 2) return s.atLeast2Chars;
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                _sheetField(
+                  context,
+                  controller: _phone,
+                  label: s.phoneLabel,
+                  icon: Icons.call_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    final v = value?.trim() ?? "";
+                    if (v.isEmpty) return s.enterYourPhone;
+                    if (!_validPhone(v)) return s.enterValidPhone;
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                _sheetField(
+                  context,
+                  controller: _carModel,
+                  label: s.carModelLabel,
+                  icon: Icons.directions_car_rounded,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? s.enterCarModel
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                _sheetField(
+                  context,
+                  controller: _plate,
+                  label: s.plateLabel,
+                  icon: Icons.pin_rounded,
+                  validator: (value) =>
+                      (value == null || value.trim().isEmpty)
+                          ? s.enterPlate
+                          : null,
+                ),
+                const SizedBox(height: 12),
+                _sheetField(
+                  context,
+                  controller: _license,
+                  label: s.licenseRow,
+                  icon: Icons.badge_outlined,
+                  validator: (value) =>
+                      (value == null || value.trim().isEmpty)
+                          ? s.enterLicense
+                          : null,
+                ),
+                const SizedBox(height: 12),
+                _sheetField(
+                  context,
+                  controller: _price,
+                  label: s.pricePerKmDollarLabel,
+                  icon: Icons.payments_outlined,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  action: TextInputAction.done,
+                  validator: (value) {
+                    final price = double.tryParse(value?.trim() ?? "");
+                    if (price == null || price <= 0) {
+                      return s.enterValidPricePerKm;
+                    }
+                    return null;
+                  },
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  _ErrorBanner(_error!),
+                ],
+                const SizedBox(height: 16),
+                _submitButton(context,
+                    label: s.saveChanges, busy: _busy, onPressed: _save),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

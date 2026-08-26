@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -41,6 +43,10 @@ AdminDriver _driver({
   double pricePerKm = 1.2,
   bool verified = true,
   bool online = true,
+  String? phone,
+  String? carModel,
+  String? plate,
+  String? licenseNo,
 }) =>
     AdminDriver(
       driverId: driverId,
@@ -52,6 +58,10 @@ AdminDriver _driver({
       pricePerKm: pricePerKm,
       verified: verified,
       online: online,
+      phone: phone,
+      carModel: carModel,
+      plate: plate,
+      licenseNo: licenseNo,
     );
 
 Ride _ride({
@@ -113,9 +123,33 @@ class _StubAdminRepo extends AdminRepo {
       ApiResult.ok(_ride(id: 300, status: "completed", driverName: "Dara"));
 
   int statsCalls = 0;
+  int driversCalls = 0;
   final List<String?> statusQueries = <String?>[];
   final List<int> verifyCalls = <int>[];
   final List<int> suspendCalls = <int>[];
+
+  // Bots card + driver edit (Seth directive).
+  ApiResult<BotsStatus> botsStatusResult =
+      ApiResult.ok(const BotsStatus(running: false));
+  ApiResult<BotsStatus> startResult = ApiResult.ok(
+    const BotsStatus(
+      running: true,
+      ridesSpawned: 4,
+      uptimeSec: 5,
+      lastRideAt: "2026-08-26T09:30:00",
+    ),
+  );
+
+  /// When set, startBots hangs until completed — lets tests observe the
+  /// busy surface mid-flight.
+  Completer<ApiResult<BotsStatus>>? startGate;
+
+  final List<int> startCalls = <int>[];
+  int stopCalls = 0;
+  bool stoppedSinceStart = false; // stop() flips the reconcile snapshot
+  final List<(int, Map<String, dynamic>)> patchCalls =
+      <(int, Map<String, dynamic>)>[];
+  ApiResult<AdminDriver>? patchResult; // error injection
 
   @override
   Future<ApiResult<AdminStats>> stats() async {
@@ -124,8 +158,10 @@ class _StubAdminRepo extends AdminRepo {
   }
 
   @override
-  Future<ApiResult<List<AdminDriver>>> drivers() async =>
-      ApiResult.ok(List.of(driverRows));
+  Future<ApiResult<List<AdminDriver>>> drivers() async {
+    driversCalls++;
+    return ApiResult.ok(List.of(driverRows));
+  }
 
   @override
   Future<ApiResult<List<Ride>>> rides({String? status}) async {
@@ -161,6 +197,60 @@ class _StubAdminRepo extends AdminRepo {
       verified: verified ?? row.verified,
       online: row.online,
     );
+  }
+
+  @override
+  Future<ApiResult<BotsStatus>> botsStatus() async {
+    if (stoppedSinceStart) {
+      // The bare stop answer — reconcile sees the zeroed snapshot.
+      return ApiResult.ok(const BotsStatus(running: false));
+    }
+    return botsStatusResult;
+  }
+
+  @override
+  Future<ApiResult<BotsStatus>> startBots(int count) async {
+    startCalls.add(count);
+    final gate = startGate;
+    if (gate != null) return gate.future;
+    return startResult;
+  }
+
+  @override
+  Future<ApiResult<BotsStatus>> stopBots() async {
+    stopCalls++;
+    stoppedSinceStart = true;
+    return ApiResult.ok(const BotsStatus(running: false));
+  }
+
+  @override
+  Future<ApiResult<AdminDriver>> patchDriver(
+    int driverRowId,
+    Map<String, dynamic> fields,
+  ) async {
+    patchCalls.add((driverRowId, Map.of(fields)));
+    final injected = patchResult;
+    if (injected != null) return injected;
+
+    final row = driverRows.firstWhere((d) => d.driverId == driverRowId);
+    final updated = AdminDriver(
+      driverId: row.driverId,
+      userId: row.userId,
+      name: (fields["name"] as String?) ?? row.name,
+      email: row.email,
+      phone: (fields["phone"] as String?) ?? row.phone,
+      rating: row.rating,
+      active: row.active,
+      pricePerKm: (fields["price_per_km"] as double?) ?? row.pricePerKm,
+      verified: row.verified,
+      online: row.online,
+      carModel: (fields["car_model"] as String?) ?? row.carModel,
+      plate: (fields["plate"] as String?) ?? row.plate,
+      licenseNo: (fields["license_no"] as String?) ?? row.licenseNo,
+    );
+    driverRows[driverRows.indexWhere((d) => d.driverId == driverRowId)] =
+        updated; // reconcile reload sees server truth
+    return ApiResult.ok(updated);
   }
 }
 
@@ -229,10 +319,17 @@ void main() {
       await _pump(tester, const DashboardTab(), repo: repo);
       await tester.pumpAndSettle();
 
-      expect(find.text("2"), findsOneWidget); // live rides
-      expect(find.text("1"), findsOneWidget); // online drivers
-      expect(find.text("3"), findsOneWidget); // completed today
-      expect(find.text("4.75"), findsOneWidget); // avg rating
+      // Digits are scoped to the KPI grid — the Bots card's 1|2|3 pair
+      // selector renders the same numerals beside it.
+      final kpiGrid = find.byType(GridView);
+      expect(find.descendant(of: kpiGrid, matching: find.text("2")),
+          findsOneWidget); // live rides
+      expect(find.descendant(of: kpiGrid, matching: find.text("1")),
+          findsOneWidget); // online drivers
+      expect(find.descendant(of: kpiGrid, matching: find.text("3")),
+          findsOneWidget); // completed today
+      expect(find.descendant(of: kpiGrid, matching: find.text("4.75")),
+          findsOneWidget); // avg rating
       expect(find.text("Live rides"), findsOneWidget);
       expect(find.text("Online drivers"), findsOneWidget);
       expect(find.text("Completed today"), findsOneWidget);
@@ -263,6 +360,125 @@ void main() {
 
       expect(repo.statsCalls, 2);
       expect(find.text("4.75"), findsOneWidget);
+    });
+  });
+
+  group("Bots card", () {
+    testWidgets("renders the Stopped snapshot from the mocked repo",
+        (tester) async {
+      final repo = _StubAdminRepo()
+        ..botsStatusResult = ApiResult.ok(const BotsStatus(
+          running: false,
+          ridesSpawned: 7,
+          uptimeSec: 200,
+        ));
+      await _pump(tester, const DashboardTab(), repo: repo);
+      await tester.pumpAndSettle();
+
+      expect(find.text("Stopped"), findsOneWidget);
+      expect(find.text("Uptime 3 m 20 s"), findsOneWidget);
+      expect(find.text("Rides spawned"), findsOneWidget);
+      expect(find.text("7"), findsOneWidget);
+      expect(find.text("Last ride"), findsOneWidget);
+      expect(find.text("—"), findsOneWidget); // nothing spawned yet
+      // Manual-refresh-only card: the header button is present.
+      expect(find.byKey(const Key("bots-refresh")), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, "Start bots"), findsOneWidget);
+    });
+
+    testWidgets("start deploys the selected pair count and adopts running truth",
+        (tester) async {
+      final repo = _StubAdminRepo();
+      repo.startGate = Completer();
+      await _pump(tester, const DashboardTab(), repo: repo);
+      await tester.pumpAndSettle();
+      expect(find.text("Stopped"), findsOneWidget);
+
+      // Pick 3 pairs — scoped to the selector: KPI digits read the same.
+      await tester.tap(find.descendant(
+        of: find.byType(SegmentedButton<int>),
+        matching: find.text("3"),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("bots-toggle")));
+      await tester.pump(); // mid-flight — the gate holds the future open
+
+      expect(repo.startCalls, [3]);
+      expect(
+        tester.widget<FilledButton>(find.byKey(const Key("bots-toggle"))).onPressed,
+        isNull, // busy surface
+      );
+
+      repo.startGate!.complete(repo.startResult);
+      await tester.pumpAndSettle();
+
+      expect(find.text("Running"), findsOneWidget);
+      expect(find.text("Uptime 5 s"), findsOneWidget);
+      expect(find.text("26 Aug · 09:30"), findsOneWidget); // last ride stamp
+      expect(find.widgetWithText(FilledButton, "Stop bots"), findsOneWidget);
+    });
+
+    testWidgets("stop flips to Stopped through the reconcile reload",
+        (tester) async {
+      final repo = _StubAdminRepo()
+        ..botsStatusResult = ApiResult.ok(const BotsStatus(
+          running: true,
+          ridesSpawned: 9,
+          uptimeSec: 3600,
+        ));
+      await _pump(tester, const DashboardTab(), repo: repo);
+      await tester.pumpAndSettle();
+      expect(find.text("Running"), findsOneWidget);
+      expect(find.text("Uptime 1 h 00 m"), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key("bots-toggle")));
+      await tester.pumpAndSettle();
+
+      expect(repo.stopCalls, 1);
+      expect(find.text("Stopped"), findsOneWidget);
+      // Reconcile adopted the bare {running:false} snapshot: counters zeroed.
+      expect(find.text("Rides spawned"), findsOneWidget);
+      expect(find.text("0"), findsOneWidget);
+      expect(find.text("—"), findsOneWidget);
+    });
+
+    testWidgets("start failure surfaces the server message, state unchanged",
+        (tester) async {
+      final repo = _StubAdminRepo()
+        ..startResult = const ApiResult.err(
+            "BOT_ALREADY_RUNNING", "Bots manager is already running");
+      await _pump(tester, const DashboardTab(), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("bots-toggle")));
+      await tester.pumpAndSettle();
+
+      expect(repo.startCalls, [2]); // untouched default selection
+      expect(find.text("Bots manager is already running"), findsOneWidget);
+      expect(find.text("Stopped"), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, "Start bots"), findsOneWidget);
+    });
+
+    testWidgets("manual refresh recovers from a failed status read",
+        (tester) async {
+      final repo = _StubAdminRepo()
+        ..botsStatusResult =
+            const ApiResult.err("NETWORK", networkUnreachableMessage);
+      await _pump(tester, const DashboardTab(), repo: repo);
+      await tester.pumpAndSettle();
+
+      expect(find.text(networkUnreachableMessage), findsOneWidget);
+      expect(find.text("Stopped"), findsNothing); // no snapshot — no claim
+
+      repo.botsStatusResult =
+          ApiResult.ok(const BotsStatus(running: false, ridesSpawned: 2));
+      await tester.tap(find.byKey(const Key("bots-refresh")));
+      await tester.pumpAndSettle();
+
+      expect(find.text(networkUnreachableMessage), findsNothing);
+      expect(find.text("Stopped"), findsOneWidget);
+      expect(find.text("Rides spawned"), findsOneWidget);
     });
   });
 
@@ -369,6 +585,75 @@ void main() {
         tester.widget<FilledButton>(find.byKey(const Key("suspend-11"))).onPressed,
         isNull,
       );
+    });
+  });
+
+  group("Driver edit sheet", () {
+    testWidgets("opens pre-filled and PATCHes all six snake_case fields",
+        (tester) async {
+      final repo = _StubAdminRepo();
+      repo.driverRows[0] = _driver(
+        driverId: 11,
+        userId: 41,
+        name: "Dara",
+        email: "dara@taxi.demo",
+        phone: "+855 12 345 678",
+        carModel: "Honda Dream 125",
+        plate: "1KH-2345",
+        licenseNo: "KH-9988",
+      );
+      await _pump(tester, const DriversTab(), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("edit-11")));
+      await tester.pumpAndSettle();
+
+      // Modal first — nothing dispatched until Save.
+      expect(find.text("Edit driver"), findsOneWidget);
+      expect(repo.patchCalls, isEmpty);
+
+      await tester.enterText(
+          find.widgetWithText(TextFormField, "Name"), "Dara Sok");
+      await tester.enterText(
+          find.widgetWithText(TextFormField, r"Price per km ($)"), "2.50");
+
+      await tester.tap(find.text("Save changes"));
+      await tester.pumpAndSettle();
+
+      // Record fields asserted separately — map identity inside records.
+      expect(repo.patchCalls, hasLength(1));
+      expect(repo.patchCalls.single.$1, 11);
+      expect(repo.patchCalls.single.$2, <String, dynamic>{
+        "name": "Dara Sok",
+        "phone": "+855 12 345 678",
+        "car_model": "Honda Dream 125",
+        "plate": "1KH-2345",
+        "license_no": "KH-9988",
+        "price_per_km": 2.50,
+      });
+      // Sheet closed; row re-rendered from server truth + reconcile reload.
+      expect(find.text("Edit driver"), findsNothing);
+      expect(find.text("Dara Sok"), findsOneWidget);
+      expect(find.text(r"$2.50/km"), findsOneWidget);
+      expect(repo.driversCalls, 2); // initial load + post-patch reconcile
+    });
+
+    testWidgets("an invalid name blocks the PATCH and keeps the sheet open",
+        (tester) async {
+      final repo = _StubAdminRepo();
+      await _pump(tester, const DriversTab(), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key("edit-11")));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, "Name"), "D");
+      await tester.tap(find.text("Save changes"));
+      await tester.pumpAndSettle();
+
+      expect(find.text("At least 2 characters"), findsOneWidget);
+      expect(find.text("Edit driver"), findsOneWidget); // still open
+      expect(repo.patchCalls, isEmpty);
     });
   });
 

@@ -632,6 +632,36 @@ class AppLocalizationsKm extends AppLocalizations {
   }
 
   @override
+  String get botsCardTitle => 'ក្រុមបូត';
+
+  @override
+  String get botsRunning => 'កំពុងដំណើរការ';
+
+  @override
+  String get botsStopped => 'បានឈប់';
+
+  @override
+  String get botsPairsLabel => 'គូបូត';
+
+  @override
+  String get botsStartButton => 'ចាប់ផ្ដើមបូត';
+
+  @override
+  String get botsStopButton => 'ឈប់បូត';
+
+  @override
+  String get botsUptimeLabel => 'រយៈពេលដំណើរការ';
+
+  @override
+  String get botsRidesLabel => 'ដំណើរដែលបង្កើត';
+
+  @override
+  String get botsLastRideLabel => 'ដំណើរចុងក្រោយ';
+
+  @override
+  String get editDriverTitle => 'កែសម្រួលអ្នកបើកបរ';
+
+  @override
   String get month1 => 'មករា';
 
   @override
