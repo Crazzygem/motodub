@@ -114,6 +114,54 @@ export async function suspendDriver(driverRowId) {
 }
 
 /**
+ * Seth directive — PATCH /api/admin/drivers/:id — admin edits ANY driver
+ * (bots included) "just like the driver side". Account fields land on the
+ * users row, vehicle fields on the drivers row; the route's zod schema
+ * already mirrors the driver's own PATCH rules, so only assignment happens.
+ */
+export async function updateDriver(driverRowId, fields) {
+  const driver = await requireDriverItem(driverRowId);
+  const USER_FIELDS = ["name", "phone"];
+  const DRIVER_FIELDS = ["car_model", "plate", "license_no", "price_per_km"];
+  const userFields = Object.fromEntries(
+    Object.entries(fields).filter(([k]) => USER_FIELDS.includes(k)),
+  );
+  const driverFields = Object.fromEntries(
+    Object.entries(fields).filter(([k]) => DRIVER_FIELDS.includes(k)),
+  );
+  // users row carries no PK in the include — update by FK, then mirror onto
+  // the loaded instance so toDriverItem echoes the new values.
+  if (Object.keys(userFields).length > 0) {
+    await User.update(userFields, { where: { id: driver.user_id } });
+    Object.assign(driver.User, userFields);
+  }
+  if (Object.keys(driverFields).length > 0) await driver.update(driverFields);
+  return toDriverItem(driver);
+}
+
+/**
+ * Seth directive — GET /api/admin/bots/status driver enrichment. The bots
+ * manager tracks its session in memory; verified/online/photos are DB truth,
+ * read here by email so the wire shape matches what the manager is running.
+ * Wire keys are camelCase per the /api/admin/bots contract (documented
+ * deviation from §10 snake_case).
+ */
+export async function listBotDrivers(emails) {
+  if (!emails || emails.length === 0) return [];
+  const drivers = await Driver.findAll({
+    include: [
+      { model: User, attributes: ["name", "email", "phone", "rating", "active"], where: { email: { [Op.in]: emails } } },
+    ],
+  });
+  return drivers.map((driver) => ({
+    email: driver.User.email,
+    verified: Boolean(driver.verified),
+    online: Boolean(driver.online),
+    vehiclePhotos: vehiclePhotosOf(driver),
+  }));
+}
+
+/**
  * Task 6.1 GET /api/admin/rides — full feed, newest first. Optional ?status=
  * filter validates against the model's own enum — one source of truth, and
  * an unknown value is a client bug (VALIDATION_ERROR), not an empty page.

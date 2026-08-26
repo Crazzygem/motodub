@@ -175,11 +175,17 @@ afterAll(async () => {
 
 describe("admin RBAC gates (§4 matrix)", () => {
   // 999999 exists nowhere — even a broken gate could not mutate anything.
+  // The bots routes are gate-only here: bots-admin.test.js owns the real
+  // lifecycle (this suite must never start the embedded manager).
   const ADMIN_PATHS = [
     ["get", "/api/admin/stats"],
     ["get", "/api/admin/drivers"],
     ["post", "/api/admin/drivers/999999/verify"],
     ["post", "/api/admin/drivers/999999/suspend"],
+    ["patch", "/api/admin/drivers/999999"],
+    ["get", "/api/admin/bots/status"],
+    ["post", "/api/admin/bots"],
+    ["delete", "/api/admin/bots"],
     ["get", "/api/admin/rides"],
   ];
 

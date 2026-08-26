@@ -8,6 +8,7 @@ const STATUS = {
   RIDE_BUSY_CUSTOMER: 409, // conflict — §2 invariant 2
   RIDE_BUSY_DRIVER: 409, // conflict — §2 invariant 1
   RIDE_INVALID_TRANSITION: 409, // conflict — §2 table violated
+  BOT_ALREADY_RUNNING: 409, // conflict — one embedded bots session at a time
 };
 
 export const ok = (res, data, status = 200) =>
