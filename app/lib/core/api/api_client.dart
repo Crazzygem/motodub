@@ -89,8 +89,8 @@ class ApiClient {
 
   static BaseOptions _baseOptions() => BaseOptions(
         baseUrl: apiBaseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
         validateStatus: (_) => true, // envelope decides success
       );
 
