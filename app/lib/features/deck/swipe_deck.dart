@@ -25,6 +25,40 @@ const double _releaseVelocity = 700; // px/s
 const List<double> _peekScale = [0.945, 0.89];
 const List<double> _peekTranslateY = [14, 28];
 
+/// The deck's visual pose bus. Drag deltas and release-animation ticks are
+/// pushed through [apply]; every animated consumer (top-card transforms,
+/// peek parallax, swipe wash) listens instead of rebuilding through
+/// [SwipeDeck]'s setState — so a drag frame costs transform-layer updates
+/// plus one tiny wash repaint, never a card-subtree rebuild.
+class _DeckMotion extends ChangeNotifier {
+  Offset offset = Offset.zero;
+  double angle = 0;
+  double fade = 1;
+
+  /// Signed wash ramp, `±clamp(|dx|/110, 0, 1)`: sign picks the tint,
+  /// magnitude drives the fade — mirrors the old `_washProgress` math.
+  final ValueNotifier<double> washProgress = ValueNotifier(0);
+
+  void apply({
+    required Offset offset,
+    required double angle,
+    required double fade,
+  }) {
+    this.offset = offset;
+    this.angle = angle;
+    this.fade = fade;
+    final opacity = (offset.dx.abs() / _releaseDistance).clamp(0.0, 1.0);
+    washProgress.value = offset.dx < 0 ? -opacity : opacity;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    washProgress.dispose();
+    super.dispose();
+  }
+}
+
 /// THE gesture component — drag/fling right to book, left to pass; the stack
 /// pops to the next driver. Swipe-left never leaves the device; swipe-right
 /// pops the card here and hands the driver to [onSwipedRight] (Task 3.5 wires
@@ -42,9 +76,7 @@ class SwipeDeck extends ConsumerStatefulWidget {
 class _SwipeDeckState extends ConsumerState<SwipeDeck>
     with SingleTickerProviderStateMixin {
   late final AnimationController _anim = AnimationController(vsync: this);
-
-  /// Raw pointer delta while dragging — visual applies translate(dx, dy·.35).
-  Offset _drag = Offset.zero;
+  late final _DeckMotion _motion = _DeckMotion();
 
   /// Set only while a release animation runs.
   Animation<Offset>? _offsetAnim;
@@ -58,16 +90,31 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
   @override
   void initState() {
     super.initState();
-    _anim.addStatusListener(_onAnimStatus);
+    _anim
+      ..addListener(_onAnimTick)
+      ..addStatusListener(_onAnimStatus);
   }
 
   @override
   void dispose() {
     _anim.dispose();
+    _motion.dispose();
     super.dispose();
   }
 
   // --- release handling -----------------------------------------------------
+
+  /// Release tweens stream straight into the pose bus — the animated card
+  /// never rebuilds mid-flight either.
+  void _onAnimTick() {
+    final offsetAnim = _offsetAnim;
+    if (offsetAnim == null) return; // reset() noise after completion
+    _motion.apply(
+      offset: offsetAnim.value,
+      angle: _angleAnim!.value,
+      fade: _fadeAnim!.value,
+    );
+  }
 
   void _onAnimStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
@@ -82,45 +129,36 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
         widget.onSwipedLeft?.call(driver);
       }
     }
-    setState(() {
-      _drag = Offset.zero;
-      _offsetAnim = null;
-      _angleAnim = null;
-      _fadeAnim = null;
-      _flyingDriver = null;
-    });
-    _anim.reset();
+    _offsetAnim = null;
+    _angleAnim = null;
+    _fadeAnim = null;
+    _flyingDriver = null;
+    _anim.reset(); // ticks are guarded — cleared above
+    _motion.apply(offset: Offset.zero, angle: 0, fade: 1);
   }
 
-  Offset get _visualOffset =>
-      _offsetAnim?.value ?? Offset(_drag.dx, _drag.dy * .35);
-
-  double get _visualAngle =>
-      _angleAnim?.value ?? _angleForDx(_drag.dx.toDouble());
+  double get _visualAngle => _angleForDx(_motion.offset.dx);
 
   /// `rotate(dx/16deg)` from DESIGN.md §6.
   static double _angleForDx(double dx) => dx / 16 * math.pi / 180;
-
-  /// Task 7.2 parallax peek — the two peek cards lean slightly opposite to
-  /// the drag, deeper cards more. Driven by the visual offset so release
-  /// animations carry them home; clamped so it stays a whisper.
-  double _peekParallax(int depth) {
-    const factors = [0.05, 0.09];
-    const maxShifts = [6.0, 11.0];
-    final shift = -_visualOffset.dx * factors[depth - 1];
-    return shift.clamp(-maxShifts[depth - 1], maxShifts[depth - 1]);
-  }
 
   bool get _busy => _anim.isAnimating;
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (_busy) return;
-    setState(() => _drag += details.delta);
+    final cur = _motion.offset;
+    // Visual applies translate(dx, dy·.35) — y is damped, x drives logic.
+    _applyDrag(
+      Offset(cur.dx + details.delta.dx, cur.dy + details.delta.dy * .35),
+    );
   }
+
+  void _applyDrag(Offset visual) =>
+      _motion.apply(offset: visual, angle: _angleForDx(visual.dx), fade: 1);
 
   void _onPanEnd(DragEndDetails details) {
     if (_busy) return;
-    final dx = _drag.dx.toDouble();
+    final dx = _motion.offset.dx;
     final vx = details.velocity.pixelsPerSecond.dx;
     final farEnough =
         dx.abs() >= _releaseDistance || vx.abs() >= _releaseVelocity;
@@ -132,7 +170,7 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
   void _springBack() {
     final curved = CurvedAnimation(parent: _anim, curve: _springBackCurve);
     _offsetAnim =
-        Tween(begin: _visualOffset, end: Offset.zero).animate(curved);
+        Tween(begin: _motion.offset, end: Offset.zero).animate(curved);
     _angleAnim = Tween(begin: _visualAngle, end: 0.0).animate(curved);
     _fadeAnim = ConstantTween(1.0).animate(_anim);
     _anim.duration = _springBackDuration;
@@ -146,8 +184,8 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
     _flyingDriver = driver;
     final curved = CurvedAnimation(parent: _anim, curve: Curves.easeIn);
     _offsetAnim = Tween(
-      begin: _visualOffset,
-      end: Offset(sign * _flyOutDistance, _visualOffset.dy),
+      begin: _motion.offset,
+      end: Offset(sign * _flyOutDistance, _motion.offset.dy),
     ).animate(curved);
     _angleAnim = Tween(
       begin: _visualAngle,
@@ -193,18 +231,44 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
                   for (var depth = math.min(cards.length - 1, 2); depth >= 1; depth--)
                     _PeekCard(
                       driver: cards[depth],
+                      depth: depth,
+                      motion: _motion,
                       scale: _peekScale[depth - 1],
                       translateY: _peekTranslateY[depth - 1],
-                      parallaxX: _peekParallax(depth),
                     ),
-                  _TopCard(
-                    key: ValueKey(cards.first.id),
-                    driver: cards.first,
-                    offset: _visualOffset,
-                    angle: _visualAngle,
-                    fadeOpacity: _fadeAnim?.value ?? 1,
-                    onPanUpdate: _onPanUpdate,
-                    onPanEnd: _onPanEnd,
+                  // Drag frames flow through ListenableBuilder's cached child:
+                  // only the Opacity/Transform render objects update, and the
+                  // RepaintBoundary keeps the card's baked layer composited
+                  // under the new matrix — no subtree rebuild, no repaint.
+                  ListenableBuilder(
+                    listenable: _motion,
+                    child: RepaintBoundary(
+                      key: ValueKey(cards.first.id),
+                      child: DriverCard(
+                        driver: cards.first,
+                        overlay: _SwipeWash(_motion),
+                      ),
+                    ),
+                    builder: (_, card) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanUpdate: _onPanUpdate,
+                      onPanEnd: _onPanEnd,
+                      child: Opacity(
+                        opacity: _motion.fade,
+                        child: Transform.translate(
+                          offset: _motion.offset,
+                          child: Transform.rotate(
+                            alignment: Alignment.center,
+                            angle: _motion.angle,
+                            // The direction wash rides inside DriverCard —
+                            // above photo and shade, below watermark/info —
+                            // so copy stays readable at full tint (same
+                            // layering philosophy as the dark info gradient).
+                            child: card,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ]);
               },
@@ -216,87 +280,49 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
   }
 }
 
-// --- top (draggable) card -----------------------------------------------------
-
-class _TopCard extends StatelessWidget {
-  const _TopCard({
-    super.key,
-    required this.driver,
-    required this.offset,
-    required this.angle,
-    required this.fadeOpacity,
-    required this.onPanUpdate,
-    required this.onPanEnd,
-  });
-
-  final Driver driver;
-  final Offset offset;
-  final double angle;
-  final double fadeOpacity;
-  final GestureDragUpdateCallback onPanUpdate;
-  final GestureDragEndCallback onPanEnd;
-
-  /// `clamp(|dx|/110, 0, 1)` from DESIGN.md §6.
-  double get _overlayOpacity => (offset.dx.abs() / 110).clamp(0.0, 1.0);
-
-  /// Signed wash progress: sign picks the color, magnitude the ramp.
-  double get _washProgress =>
-      offset.dx < 0 ? -_overlayOpacity : _overlayOpacity;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanUpdate: onPanUpdate,
-      onPanEnd: onPanEnd,
-      child: Opacity(
-        opacity: fadeOpacity,
-        child: Transform.translate(
-          offset: offset,
-          child: Transform.rotate(
-            alignment: Alignment.center,
-            angle: angle,
-            // The direction wash rides inside DriverCard — above photo and
-            // shade, below watermark/info — so copy stays readable at full
-            // tint (same layering philosophy as the dark info gradient).
-            child: DriverCard(
-              driver: driver,
-              overlay: _SwipeWash(progress: _washProgress),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// --- swipe-direction wash -----------------------------------------------------
 
 /// Swipe-direction wash (Seth directive — replaces the §6 BOOK/PASS stamps):
 /// green toward a book commit, red toward a pass commit, ramping with the
 /// same |dx|/110 ease the stamps used. During fly-out the offset runs past
 /// ±110 so the tint pins at full strength, then fades with the card's own
 /// opacity animation as the next card arrives.
+///
+/// Listenable-driven: drag frames rebuild only this Opacity+gradient inside
+/// their own RepaintBoundary — the photo, shade, watermark and info block
+/// behind it are never touched.
 class _SwipeWash extends StatelessWidget {
-  const _SwipeWash({required this.progress});
+  const _SwipeWash(this._motion);
 
-  /// Signed drag progress: >0 books (green), <0 passes (red), 0 hides.
-  final double progress;
+  final _DeckMotion _motion;
 
   @override
   Widget build(BuildContext context) {
-    final books = progress >= 0;
-    final tint = books ? AppColors.bookGreen : AppColors.passRed;
     return Container(
       key: const Key("deck-swipe-wash"),
-      child: Opacity(
-        opacity: progress.abs(),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: books ? Alignment.centerLeft : Alignment.centerRight,
-              end: books ? Alignment.centerRight : Alignment.centerLeft,
-              colors: [tint.withValues(alpha: 0), tint.withValues(alpha: .6)],
-            ),
-          ),
+      child: RepaintBoundary(
+        child: ValueListenableBuilder<double>(
+          valueListenable: _motion.washProgress,
+          builder: (_, progress, _) {
+            final books = progress >= 0;
+            final tint = books ? AppColors.bookGreen : AppColors.passRed;
+            return Opacity(
+              opacity: progress.abs(),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin:
+                        books ? Alignment.centerLeft : Alignment.centerRight,
+                    end: books ? Alignment.centerRight : Alignment.centerLeft,
+                    colors: [
+                      tint.withValues(alpha: 0),
+                      tint.withValues(alpha: .6),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -308,23 +334,37 @@ class _SwipeWash extends StatelessWidget {
 class _PeekCard extends StatelessWidget {
   const _PeekCard({
     required this.driver,
+    required this.depth,
+    required this.motion,
     required this.scale,
     required this.translateY,
-    required this.parallaxX,
   });
 
   final Driver driver;
+  final int depth;
+  final _DeckMotion motion;
   final double scale;
   final double translateY;
-  final double parallaxX;
+
+  /// Task 7.2 parallax peek — leans slightly opposite to the drag, deeper
+  /// cards more; clamped so it stays a whisper.
+  double get parallaxX {
+    const factors = [0.05, 0.09];
+    const maxShifts = [6.0, 11.0];
+    final shift = -motion.offset.dx * factors[depth - 1];
+    return shift.clamp(-maxShifts[depth - 1], maxShifts[depth - 1]);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: Offset(parallaxX, translateY),
-      child: Transform.scale(
-        scale: scale,
-        child: DriverCard(driver: driver),
+    // Same isolation as the top card: per-frame parallax updates only the
+    // translate matrix — the baked card layer is composited, never rebuilt.
+    return ListenableBuilder(
+      listenable: motion,
+      child: RepaintBoundary(child: DriverCard(driver: driver)),
+      builder: (_, card) => Transform.translate(
+        offset: Offset(parallaxX, translateY),
+        child: Transform.scale(scale: scale, child: card),
       ),
     );
   }
