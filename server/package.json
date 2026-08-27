@@ -1,7 +1,7 @@
 {
-  "name": "motodub-server",
+  "name": "duboun-server",
   "version": "1.0.0",
-  "description": "MotoDub API — Express + Socket.IO + Sequelize (MySQL)",
+  "description": "DubOun API — Express + Socket.IO + Sequelize (MySQL) — https://api.duboun.baby",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
