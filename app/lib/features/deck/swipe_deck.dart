@@ -405,11 +405,30 @@ class _DeckSkeleton extends StatelessWidget {
   }
 }
 
-class _DeckEmpty extends ConsumerWidget {
+class _DeckEmpty extends ConsumerStatefulWidget {
   const _DeckEmpty();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DeckEmpty> createState() => _DeckEmptyState();
+}
+
+class _DeckEmptyState extends ConsumerState<_DeckEmpty> {
+  late final String _title;
+  late final String _hint;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _title = FlirtyCopy.noDriversTitle(context);
+      _hint = FlirtyCopy.noDriversHint(context);
+      _didCache = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final s = context.l10n;
 
     return Column(
@@ -418,7 +437,7 @@ class _DeckEmpty extends ConsumerWidget {
         const Text("🛵", style: TextStyle(fontSize: 44)),
         const SizedBox(height: 12),
         Text(
-          FlirtyCopy.noDriversTitle(context),
+          _didCache ? _title : FlirtyCopy.noDriversTitle(context),
           style: GoogleFonts.sora(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -427,7 +446,7 @@ class _DeckEmpty extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          FlirtyCopy.noDriversHint(context),
+          _didCache ? _hint : FlirtyCopy.noDriversHint(context),
           textAlign: TextAlign.center,
           style: Theme.of(context)
               .textTheme
@@ -444,6 +463,7 @@ class _DeckEmpty extends ConsumerWidget {
     );
   }
 }
+
 class _DeckError extends ConsumerWidget {
   const _DeckError({required this.message});
 

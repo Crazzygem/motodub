@@ -185,8 +185,27 @@ class _Content extends StatelessWidget {
   }
 }
 
-class _EmptyView extends StatelessWidget {
+class _EmptyView extends StatefulWidget {
   const _EmptyView();
+
+  @override
+  State<_EmptyView> createState() => _EmptyViewState();
+}
+
+class _EmptyViewState extends State<_EmptyView> {
+  late final String _title;
+  late final String _hint;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _title = FlirtyCopy.noRidesYetTitle(context);
+      _hint = FlirtyCopy.historyEmptyHint(context);
+      _didCache = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,13 +221,13 @@ class _EmptyView extends StatelessWidget {
             children: [
               const Text("🧾", style: TextStyle(fontSize: 52)),
               const SizedBox(height: 12),
-              Text(FlirtyCopy.noRidesYetTitle(context),
+              Text(_didCache ? _title : FlirtyCopy.noRidesYetTitle(context),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  FlirtyCopy.historyEmptyHint(context),
+                  _didCache ? _hint : FlirtyCopy.historyEmptyHint(context),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium,
                 ),

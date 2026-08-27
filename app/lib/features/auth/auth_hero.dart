@@ -31,19 +31,38 @@ InputDecoration authFieldDecoration(
 /// melts into the canvas, carrying the DUBOUN wordmark. Matches screenshot
 /// [Image #1] — pale pink top, saturated band behind the wordmark, fade to
 /// white before the form. Purely presentational.
-class AuthHero extends StatelessWidget {
+/// Flirty tagline is cached per State visit (late final) so polling /
+/// rebuilds don't flicker the wording.
+class AuthHero extends StatefulWidget {
   const AuthHero({super.key, this.wordmark = "DUBOUN", this.tagline});
 
   final String wordmark;
 
-  /// Null → random flirty tagline (all 20, Option B).
+  /// Null → random flirty tagline (all 20, Option B), cached per visit.
   final String? tagline;
+
+  @override
+  State<AuthHero> createState() => _AuthHeroState();
+}
+
+class _AuthHeroState extends State<AuthHero> {
+  late final String _cachedFlirty;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache && widget.tagline == null) {
+      _cachedFlirty = FlirtyCopy.tagline(context);
+      _didCache = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = tokensOf(context);
-    final flirtyTagline = tagline ?? FlirtyCopy.tagline(context);
+    final flirtyTagline = widget.tagline ?? (_didCache ? _cachedFlirty : FlirtyCopy.tagline(context));
 
     return Container(
       decoration: BoxDecoration(
@@ -62,7 +81,7 @@ class AuthHero extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            wordmark,
+            widget.wordmark,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 34,

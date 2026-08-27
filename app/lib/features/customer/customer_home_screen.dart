@@ -87,14 +87,37 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 }
 
-class _DeckTab extends ConsumerWidget {
+class _DeckTab extends ConsumerStatefulWidget {
   const _DeckTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DeckTab> createState() => _DeckTabState();
+}
+
+class _DeckTabState extends ConsumerState<_DeckTab> {
+  String? _greeting;
+  String? _deckTitle;
+  String? _cachedName;
+
+  @override
+  Widget build(BuildContext context) {
     final mockMode = ref.watch(deckProvider.notifier).mockMode;
     final name = ref.watch(authProvider).valueOrNull?.name;
-    final greeting = FlirtyCopy.greeting(context, DateTime.now(), name);
+    // Cache deckTitle per visit (stable, no flicker on polling)
+    _deckTitle ??= FlirtyCopy.deckTitle(context);
+    // Cache greeting per visit, but only when name is available to avoid
+    // caching "Good afternoon" without the name on the very first frame
+    // before auth loads (which caused the test to see no ", Dara").
+    if (_greeting == null && name != null && name.trim().isNotEmpty) {
+      _greeting = FlirtyCopy.greeting(context, DateTime.now(), name);
+      _cachedName = name;
+    } else if (_greeting != null && _cachedName != name && name != null && name.trim().isNotEmpty) {
+      // Name changed (unlikely per visit), re-cache
+      _greeting = FlirtyCopy.greeting(context, DateTime.now(), name);
+      _cachedName = name;
+    }
+    final greeting = _greeting ?? FlirtyCopy.greeting(context, DateTime.now(), name);
+    final deckTitle = _deckTitle ?? FlirtyCopy.deckTitle(context);
 
     return SafeArea(
       child: Column(
@@ -105,9 +128,10 @@ class _DeckTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(greeting, style: Theme.of(context).textTheme.titleLarge),
+                Text(greeting,
+                    style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 2),
-                Text(FlirtyCopy.deckTitle(context),
+                Text(deckTitle,
                     style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),

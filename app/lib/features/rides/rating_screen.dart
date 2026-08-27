@@ -291,7 +291,7 @@ class _PartyAvatar extends StatelessWidget {
 
 // --- form -------------------------------------------------------------------------
 
-class _RateForm extends StatelessWidget {
+class _RateForm extends StatefulWidget {
   const _RateForm({
     required this.ride,
     required this.viewerRole,
@@ -313,9 +313,29 @@ class _RateForm extends StatelessWidget {
   final VoidCallback onBack;
 
   @override
+  State<_RateForm> createState() => _RateFormState();
+}
+
+class _RateFormState extends State<_RateForm> {
+  late final String _rateTitle;
+  late final ({String name, String caption}) _cachedParty;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _rateTitle = FlirtyCopy.rateYourTrip(context);
+      _cachedParty = _party(widget.ride, widget.viewerRole, context.l10n, context);
+      _didCache = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final party = _party(ride, viewerRole, context.l10n, context);
+    final party = _didCache ? _cachedParty : _party(widget.ride, widget.viewerRole, context.l10n, context);
+    final rateTitle = _didCache ? _rateTitle : FlirtyCopy.rateYourTrip(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -325,11 +345,11 @@ class _RateForm extends StatelessWidget {
           child: Row(
             children: [
               IconButton(
-                onPressed: onBack,
+                onPressed: widget.onBack,
                 icon: const Icon(Icons.arrow_back_rounded),
               ),
               Expanded(
-                child: Text(FlirtyCopy.rateYourTrip(context),
+                child: Text(rateTitle,
                     style: theme.textTheme.titleLarge),
               ),
             ],
@@ -354,14 +374,14 @@ class _RateForm extends StatelessWidget {
                   children: [
                     for (final n in [1, 2, 3, 4, 5])
                       GestureDetector(
-                        onTap: () => onSelect(n),
+                        onTap: () => widget.onSelect(n),
                         child: Padding(
                           padding: const EdgeInsets.all(6),
                           child: Icon(
                             Icons.star_rounded,
                             key: Key("star-$n"),
                             size: 44,
-                            color: n <= selected
+                            color: n <= widget.selected
                                 ? ratingStarColor
                                 : tokensOf(context).line,
                           ),
@@ -370,8 +390,8 @@ class _RateForm extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 26),
-                if (error != null) ...[
-                  _ErrorBanner(message: error!),
+                if (widget.error != null) ...[
+                  _ErrorBanner(message: widget.error!),
                   const SizedBox(height: 12),
                 ],
                 FilledButton(
@@ -387,8 +407,8 @@ class _RateForm extends StatelessWidget {
                     ),
                   ),
                   onPressed:
-                      selected == 0 || submitting ? null : onSubmit,
-                  child: submitting
+                      widget.selected == 0 || widget.submitting ? null : widget.onSubmit,
+                  child: widget.submitting
                       ? const SizedBox(
                           height: 18,
                           width: 18,
@@ -405,11 +425,32 @@ class _RateForm extends StatelessWidget {
   }
 }
 
-class _ThanksCard extends StatelessWidget {
+class _ThanksCard extends StatefulWidget {
   const _ThanksCard({required this.alreadyRated, required this.onDone});
 
   final bool alreadyRated;
   final VoidCallback onDone;
+
+  @override
+  State<_ThanksCard> createState() => _ThanksCardState();
+}
+
+class _ThanksCardState extends State<_ThanksCard> {
+  late final String _thanks;
+  late final String _sub;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _thanks = FlirtyCopy.thanksTitle(context);
+      _sub = widget.alreadyRated
+          ? FlirtyCopy.alreadyRatedNote(context)
+          : FlirtyCopy.ratingHelpsNote(context);
+      _didCache = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -424,16 +465,18 @@ class _ThanksCard extends StatelessWidget {
             const Icon(Icons.check_circle_rounded,
                 color: AppColors.bookGreen, size: 68),
             const SizedBox(height: 14),
-            Text(FlirtyCopy.thanksTitle(context),
+            Text(_didCache ? _thanks : FlirtyCopy.thanksTitle(context),
                 style: GoogleFonts.sora(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: tokensOf(context).textPrimary)),
             const SizedBox(height: 6),
             Text(
-              alreadyRated
-                  ? FlirtyCopy.alreadyRatedNote(context)
-                  : FlirtyCopy.ratingHelpsNote(context),
+              _didCache
+                  ? _sub
+                  : (widget.alreadyRated
+                      ? FlirtyCopy.alreadyRatedNote(context)
+                      : FlirtyCopy.ratingHelpsNote(context)),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
@@ -447,7 +490,7 @@ class _ThanksCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              onPressed: onDone,
+              onPressed: widget.onDone,
               child: Text(l10nOf(context).doneButton),
             ),
           ],

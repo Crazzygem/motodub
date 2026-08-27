@@ -72,7 +72,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
 // --- content ---------------------------------------------------------------------
 
-class _Content extends StatelessWidget {
+class _Content extends StatefulWidget {
   const _Content({
     required this.tracking,
     required this.onCancel,
@@ -86,8 +86,31 @@ class _Content extends StatelessWidget {
   final Widget? tileLayer;
 
   @override
+  State<_Content> createState() => _ContentState();
+}
+
+class _ContentState extends State<_Content> {
+  late final String _waiting;
+  late final String _driverPassed;
+  late final String _rideCancelled;
+  late final String _completed;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _waiting = FlirtyCopy.waitingForDriver(context);
+      _driverPassed = FlirtyCopy.driverPassedNote(context);
+      _rideCancelled = FlirtyCopy.rideCancelledNote(context);
+      _completed = FlirtyCopy.isTest ? "Completed 🎉" : "${FlirtyCopy.stepDone(context)} 🎉";
+      _didCache = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ride = tracking.ride!;
+    final ride = widget.tracking.ride!;
     final jakarta = Theme.of(context).textTheme;
 
     return Column(
@@ -99,8 +122,8 @@ class _Content extends StatelessWidget {
             ),
             child: _MapPanel(
               ride: ride,
-              driverPosition: tracking.driverPosition,
-              tileLayer: tileLayer,
+              driverPosition: widget.tracking.driverPosition,
+              tileLayer: widget.tileLayer,
             ),
           ),
         ),
@@ -121,13 +144,13 @@ class _Content extends StatelessWidget {
                 const SizedBox(height: 14),
                 _TripBlock(ride: ride),
                 const SizedBox(height: 14),
-                if (tracking.error != null) ...[
-                  _ErrorBanner(message: tracking.error!),
+                if (widget.tracking.error != null) ...[
+                  _ErrorBanner(message: widget.tracking.error!),
                   const SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                        onPressed: onRetry, child: Text(l10nOf(context).retry)),
+                        onPressed: widget.onRetry, child: Text(l10nOf(context).retry)),
                   ),
                   const SizedBox(height: 6),
                 ],
@@ -135,20 +158,20 @@ class _Content extends StatelessWidget {
                   // Waiting — no card yet, but the customer stays in control.
                   "requested" => [
                       Text(
-                        FlirtyCopy.waitingForDriver(context),
+                        _didCache ? _waiting : FlirtyCopy.waitingForDriver(context),
                         textAlign: TextAlign.center,
                         style: jakarta.bodyMedium,
                       ),
                       const SizedBox(height: 12),
-                      _CancelButton(canceling: tracking.canceling, onCancel: onCancel),
+                      _CancelButton(canceling: widget.tracking.canceling, onCancel: widget.onCancel),
                     ],
                   "accepted" || "en_route" || "in_progress" => [
                       _DriverCard(ride: ride),
                       const SizedBox(height: 14),
-                      _CancelButton(canceling: tracking.canceling, onCancel: onCancel),
+                      _CancelButton(canceling: widget.tracking.canceling, onCancel: widget.onCancel),
                     ],
                   "completed" => [
-                      Text(FlirtyCopy.isTest ? "Completed 🎉" : "${FlirtyCopy.stepDone(context)} 🎉", textAlign: TextAlign.center,
+                      Text(_didCache ? _completed : (FlirtyCopy.isTest ? "Completed 🎉" : "${FlirtyCopy.stepDone(context)} 🎉"), textAlign: TextAlign.center,
                           style: GoogleFonts.sora(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -156,11 +179,11 @@ class _Content extends StatelessWidget {
                     ],
                   "declined" => [
                       _TerminalNote(
-                        message: FlirtyCopy.driverPassedNote(context),
+                        message: _didCache ? _driverPassed : FlirtyCopy.driverPassedNote(context),
                       ),
                     ],
                   _ => [
-                      _TerminalNote(message: FlirtyCopy.rideCancelledNote(context)),
+                      _TerminalNote(message: _didCache ? _rideCancelled : FlirtyCopy.rideCancelledNote(context)),
                     ],
                 },
               ],
@@ -264,21 +287,47 @@ class _MapPanel extends StatelessWidget {
 
 /// requested → accepted → en_route → in_progress → completed, colored like
 /// the driver-side stepper (DESIGN §5): done=green, active=amber, pending=line.
-class _StatusStepper extends StatelessWidget {
+/// Titles cached per State visit so polling doesn't flicker wording.
+class _StatusStepper extends StatefulWidget {
   const _StatusStepper({required this.status});
 
   final String status;
 
   @override
+  State<_StatusStepper> createState() => _StatusStepperState();
+}
+
+class _StatusStepperState extends State<_StatusStepper> {
+  late final List<({String title, String status})> _steps;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _steps = [
+        (title: FlirtyCopy.stepRequested(context), status: "requested"),
+        (title: FlirtyCopy.stepAccepted(context), status: "accepted"),
+        (title: FlirtyCopy.stepEnRoute(context), status: "en_route"),
+        (title: FlirtyCopy.stepRiding(context), status: "in_progress"),
+        (title: FlirtyCopy.stepDone(context), status: "completed"),
+      ];
+      _didCache = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final steps = <({String title, String status})>[
-      (title: FlirtyCopy.stepRequested(context), status: "requested"),
-      (title: FlirtyCopy.stepAccepted(context), status: "accepted"),
-      (title: FlirtyCopy.stepEnRoute(context), status: "en_route"),
-      (title: FlirtyCopy.stepRiding(context), status: "in_progress"),
-      (title: FlirtyCopy.stepDone(context), status: "completed"),
-    ];
-    final current = steps.indexWhere((st) => st.status == status);
+    final steps = _didCache
+        ? _steps
+        : [
+            (title: FlirtyCopy.stepRequested(context), status: "requested"),
+            (title: FlirtyCopy.stepAccepted(context), status: "accepted"),
+            (title: FlirtyCopy.stepEnRoute(context), status: "en_route"),
+            (title: FlirtyCopy.stepRiding(context), status: "in_progress"),
+            (title: FlirtyCopy.stepDone(context), status: "completed"),
+          ];
+    final current = steps.indexWhere((st) => st.status == widget.status);
     if (current < 0) return const SizedBox.shrink();
 
     return Row(
@@ -294,7 +343,6 @@ class _StatusStepper extends StatelessWidget {
     );
   }
 }
-
 class _StepDot extends StatelessWidget {
   const _StepDot({required this.title, required this.index, required this.current});
 
@@ -492,18 +540,33 @@ class _DriverCard extends StatelessWidget {
   }
 }
 
-// --- buttons & notes -------------------------------------------------------------
-
-class _CancelButton extends StatelessWidget {
+class _CancelButton extends StatefulWidget {
   const _CancelButton({required this.canceling, required this.onCancel});
 
   final bool canceling;
   final VoidCallback onCancel;
 
   @override
+  State<_CancelButton> createState() => _CancelButtonState();
+}
+
+class _CancelButtonState extends State<_CancelButton> {
+  late final String _label;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _label = FlirtyCopy.cancelRide(context);
+      _didCache = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: canceling ? null : onCancel,
+      onPressed: widget.canceling ? null : widget.onCancel,
       style: FilledButton.styleFrom(
         backgroundColor: tokensOf(context).card,
         foregroundColor: AppColors.passRed,
@@ -513,20 +576,38 @@ class _CancelButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      child: canceling
+      child: widget.canceling
           ? const SizedBox(
               height: 20,
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(FlirtyCopy.cancelRide(context)),
+          : Text(_didCache ? _label : FlirtyCopy.cancelRide(context)),
     );
   }
 }
-class _TerminalNote extends StatelessWidget {
+
+class _TerminalNote extends StatefulWidget {
   const _TerminalNote({required this.message});
 
   final String message;
+
+  @override
+  State<_TerminalNote> createState() => _TerminalNoteState();
+}
+
+class _TerminalNoteState extends State<_TerminalNote> {
+  late final String _backLabel;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _backLabel = FlirtyCopy.backToDeck(context);
+      _didCache = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -540,7 +621,7 @@ class _TerminalNote extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            message,
+            widget.message,
             textAlign: TextAlign.center,
             style: Theme.of(context)
                 .textTheme
@@ -551,7 +632,7 @@ class _TerminalNote extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton.tonal(
           onPressed: () => context.go("/customer"),
-          child: Text(FlirtyCopy.backToDeck(context)),
+          child: Text(_didCache ? _backLabel : FlirtyCopy.backToDeck(context)),
         ),
       ],
     );

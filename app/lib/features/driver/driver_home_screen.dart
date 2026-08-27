@@ -160,13 +160,36 @@ String _messageFor(Object error, AppLocalizations s) {
 /// Presence card — grey dot offline → green online; the switch is hidden
 /// entirely until a vehicle profile exists (the server rejects toggles
 /// without one anyway).
-class _StatusCard extends ConsumerWidget {
+class _StatusCard extends ConsumerStatefulWidget {
   const _StatusCard({required this.state});
 
   final DriverHomeState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StatusCard> createState() => _StatusCardState();
+}
+
+class _StatusCardState extends ConsumerState<_StatusCard> {
+  late final String _onlineTitle;
+  late final String _offlineTitle;
+  late final String _receiving;
+  late final String _goOnlineHint;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _onlineTitle = FlirtyCopy.youAreOnline(context);
+      _offlineTitle = FlirtyCopy.youAreOffline(context);
+      _receiving = FlirtyCopy.receivingRequests(context);
+      _goOnlineHint = FlirtyCopy.goOnlineHint(context);
+      _didCache = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
@@ -178,29 +201,29 @@ class _StatusCard extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          _PresenceDot(online: state.online),
+          _PresenceDot(online: widget.state.online),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  state.online
-                      ? FlirtyCopy.youAreOnline(context)
-                      : FlirtyCopy.youAreOffline(context),
+                  widget.state.online
+                      ? (_didCache ? _onlineTitle : FlirtyCopy.youAreOnline(context))
+                      : (_didCache ? _offlineTitle : FlirtyCopy.youAreOffline(context)),
                   style: theme.textTheme.titleMedium,
                 ),
                 Text(
-                  state.online
-                      ? FlirtyCopy.receivingRequests(context)
-                      : FlirtyCopy.goOnlineHint(context),
+                  widget.state.online
+                      ? (_didCache ? _receiving : FlirtyCopy.receivingRequests(context))
+                      : (_didCache ? _goOnlineHint : FlirtyCopy.goOnlineHint(context)),
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
           Switch(
-            value: state.online,
+            value: widget.state.online,
             onChanged: (value) =>
                 ref.read(driverProvider.notifier).toggleOnline(value),
             activeTrackColor: AppColors.bookGreen,
@@ -347,6 +370,19 @@ class _VehicleSetupFormState extends State<_VehicleSetupForm> {
   final _license = TextEditingController();
   final _price = TextEditingController();
   bool _saving = false;
+  late final String _setupTitle;
+  late final String _setupSubtitle;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _setupTitle = FlirtyCopy.setupVehicleTitle(context);
+      _setupSubtitle = FlirtyCopy.setupVehicleSubtitle(context);
+      _didCache = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -384,11 +420,10 @@ class _VehicleSetupFormState extends State<_VehicleSetupForm> {
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(FlirtyCopy.setupVehicleTitle(context), style: theme.textTheme.titleMedium),
+            Text(_didCache ? _setupTitle : FlirtyCopy.setupVehicleTitle(context), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(FlirtyCopy.setupVehicleSubtitle(context), style: theme.textTheme.bodyMedium),
+            Text(_didCache ? _setupSubtitle : FlirtyCopy.setupVehicleSubtitle(context), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 14),
             TextFormField(
               controller: _carModel,
@@ -733,8 +768,27 @@ class _ActivityRow extends StatelessWidget {
   }
 }
 
-class _ActivityEmpty extends StatelessWidget {
+class _ActivityEmpty extends StatefulWidget {
   const _ActivityEmpty();
+
+  @override
+  State<_ActivityEmpty> createState() => _ActivityEmptyState();
+}
+
+class _ActivityEmptyState extends State<_ActivityEmpty> {
+  late final String _title;
+  late final String _hint;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _title = FlirtyCopy.activityEmptyTitle(context);
+      _hint = FlirtyCopy.activityEmptyHint(context);
+      _didCache = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -747,11 +801,11 @@ class _ActivityEmpty extends StatelessWidget {
           const Text("🗒️", textAlign: TextAlign.center,
               style: TextStyle(fontSize: 30)),
           const SizedBox(height: 8),
-          Text(FlirtyCopy.activityEmptyTitle(context),
+          Text(_didCache ? _title : FlirtyCopy.activityEmptyTitle(context),
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            FlirtyCopy.activityEmptyHint(context),
+            _didCache ? _hint : FlirtyCopy.activityEmptyHint(context),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

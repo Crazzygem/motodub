@@ -24,7 +24,7 @@ int etaMinutesForKm(double km) => (km / 25).ceil();
 /// The incoming ride: who wants to go where, how far, and the two verdict
 /// buttons. DESIGN.md §5 — avatar + name/rating, trip-km pill, green-dot
 /// pickup rail → ink-dot dropoff, Accept/Decline 50/50.
-class RequestCard extends StatelessWidget {
+class RequestCard extends StatefulWidget {
   const RequestCard({
     super.key,
     required this.request,
@@ -37,23 +37,41 @@ class RequestCard extends StatelessWidget {
   final VoidCallback onDecline;
 
   @override
+  State<RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends State<RequestCard> {
+  late final String _accept;
+  late final String _decline;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _accept = FlirtyCopy.acceptButton(context);
+      _decline = FlirtyCopy.declineButton(context);
+      _didCache = true;
+    }
+  }
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
     final s = context.l10n;
-    final name = request.customerName ?? s.customerFallback;
+    final name = widget.request.customerName ?? s.customerFallback;
     final initials = name
         .split(" ")
         .where((part) => part.isNotEmpty)
         .map((part) => part[0].toUpperCase())
         .take(2)
         .join();
-    final rating = request.customerAvgRating?.toStringAsFixed(1);
+    final rating = widget.request.customerAvgRating?.toStringAsFixed(1);
     final km = haversineKm(
-      request.pickupLat,
-      request.pickupLng,
-      request.dropoffLat,
-      request.dropoffLng,
+      widget.request.pickupLat,
+      widget.request.pickupLng,
+      widget.request.dropoffLat,
+      widget.request.dropoffLng,
     ).toStringAsFixed(1);
 
     return Container(
@@ -126,9 +144,9 @@ class RequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _LegRow(dotColor: AppColors.bookGreen, address: request.pickupAddress),
+          _LegRow(dotColor: AppColors.bookGreen, address: widget.request.pickupAddress),
           const SizedBox(height: 8),
-          _LegRow(dotColor: AppColors.ink, address: request.dropoffAddress),
+          _LegRow(dotColor: AppColors.ink, address: widget.request.dropoffAddress),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -143,8 +161,8 @@ class RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: onDecline,
-                  child: Text(FlirtyCopy.declineButton(context)),
+                  onPressed: widget.onDecline,
+                  child: Text(_didCache ? _decline : FlirtyCopy.declineButton(context)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -158,8 +176,8 @@ class RequestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: onAccept,
-                  child: Text(FlirtyCopy.acceptButton(context)),
+                  onPressed: widget.onAccept,
+                  child: Text(_didCache ? _accept : FlirtyCopy.acceptButton(context)),
                 ),
               ),
             ],

@@ -59,6 +59,19 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _pickupAddress = TextEditingController();
   late final TextEditingController _dropoffAddress = TextEditingController();
+  late final String _confirmLabel;
+  late final String _payNote;
+  bool _didCache = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didCache) {
+      _confirmLabel = FlirtyCopy.confirmBooking(context);
+      _payNote = FlirtyCopy.payCashNote(context);
+      _didCache = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -66,7 +79,6 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
     _dropoffAddress.dispose();
     super.dispose();
   }
-
   Future<void> _confirm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -196,11 +208,11 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(FlirtyCopy.confirmBooking(context)),
+                      : Text(_didCache ? _confirmLabel : FlirtyCopy.confirmBooking(context)),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  FlirtyCopy.payCashNote(context),
+                  _didCache ? _payNote : FlirtyCopy.payCashNote(context),
                   textAlign: TextAlign.center,
                   style: jakarta.labelSmall,
                 ),
