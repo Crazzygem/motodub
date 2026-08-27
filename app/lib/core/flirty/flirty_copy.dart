@@ -436,9 +436,7 @@ class DriverCopy {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3. LEGACY FLIRTY COPY (Unified facade — kept for existing widgets)
-//    Delegates to PassengerCopy/DriverCopy where new Bong/Oun pools exist,
-//    keeps old pools for missing methods so the app never breaks.
+// 3. FLIRTY COPY (Unified facade — delegates to Passenger / Driver)
 // ════════════════════════════════════════════════════════════════════════════
 class FlirtyCopy {
   static final _rnd = Random();
@@ -486,49 +484,49 @@ class FlirtyCopy {
   static String startRideCta(BuildContext context) => DriverCopy.startRideCta(context);
   static String endRideCta(BuildContext context) => DriverCopy.endRideCta(context);
 
-  // ── Kept from previous version (missing in new Bong/Oun spec) ───────────
-  // Greeting (time-based)
+  // ── Time-based Greetings ───────────────────────────────────────────────────
   static const _greetMorningEn = [
-    "Good morning, Oun",
+    "Good morning",
     "Morning, darling",
     "Hey beautiful — good morning",
-    "Rise & ride, Oun",
+    "Rise & ride",
     "Good morning, cutie",
-    "Woke up cute, Oun?",
+    "Woke up cute today?",
   ];
   static const _greetMorningKm = [
-    "អរុណសួស្តី អូន",
-    "ព្រឹកសួស្តី សំណព្វ",
-    "ព្រឹកនេះស្រស់ស្អាត អូន",
-    "ក្រោកហើយ អូន — ទៅជិះ?",
+    "អរុណសួស្តី",
+    "ព្រឹកសួស្តី សំណព្វចិត្ត",
+    "ព្រឹកនេះស្រស់ស្អាតណាស់",
+    "ក្រោកហើយមែនទេ? តោះជិះ",
     "ព្រឹកសួស្តី មនុស្សស្អាត",
   ];
   static const _greetAfternoonEn = [
-    "Good afternoon, Oun",
+    "Good afternoon",
     "Hey handsome — afternoon looks good on you",
     "Afternoon, darling",
-    "Hello sunshine, Oun",
-    "Still cute this afternoon, Oun?",
+    "Hello sunshine",
+    "Still looking cute this afternoon?",
   ];
   static const _greetAfternoonKm = [
-    "ទិវាសួស្តី អូន",
-    "រសៀលនេះស្រស់ស្អាត អូន",
-    "សួស្តី អូនសម្លាញ់",
-    "រសៀលល្អ អូន",
+    "សួស្តីពេលថ្ងៃ",
+    "រសៀលនេះ Cute ម្ល៉េះ",
+    "សួស្តី សំណព្វចិត្ត",
+    "រសៀលហើយ តោះទៅណា?",
   ];
   static const _greetEveningEn = [
-    "Good evening, Oun",
+    "Good evening",
     "Evening, darling",
-    "Hey Oun — tonight's ours",
-    "Night looks good on you, Oun",
+    "Hey — tonight's ours",
+    "Night looks good on you",
     "Evening, beautiful",
-    "Come closer, Oun — it's evening",
+    "Come closer — it's evening",
   ];
   static const _greetEveningKm = [
-    "រាត្រីសួស្តី អូន",
-    "ល្ងាចសួស្តី សំណព្វ",
-    "យប់នេះជារបស់យើង អូន",
-    "រាត្រីនេះស្រស់ស្អាត អូន",
+    "រាត្រីសួស្តី",
+    "ល្ងាចសួស្តី សំណព្វចិត្ត",
+    "យប់នេះជារបស់យើង",
+    "រាត្រីនេះ Cute ណាស់",
+    "ល្ងាចហើយ តោះណាមកណា?",
   ];
 
   static String greeting(BuildContext context, DateTime now, String? name) {
@@ -550,7 +548,12 @@ class FlirtyCopy {
           (s) => s.isNotEmpty,
           orElse: () => '',
         );
-    final suffix = (first != null && first.isNotEmpty) ? ', $first' : ', Oun';
+
+    final defaultSuffix = _isKm ? ' អូន' : ', Oun';
+    final suffix = (first != null && first.isNotEmpty)
+        ? (_isKm ? ' $first' : ', $first')
+        : defaultSuffix;
+
     List<String> pool;
     if (now.hour < 12) {
       pool = _isKm ? _greetMorningKm : _greetMorningEn;
@@ -560,48 +563,47 @@ class FlirtyCopy {
       pool = _isKm ? _greetEveningKm : _greetEveningEn;
     }
     final base = pick(pool);
-    if (base.contains('Oun') || base.contains('អូន')) return base;
     return '$base$suffix';
   }
 
+  // ── Cancellations & Navigation ─────────────────────────────────────────────
   static const _rideCancelledEn = [
     "Your ride was cancelled",
-    "Ride cancelled, Oun — next time?",
-    "Called it off — your Oun will wait",
+    "Ride cancelled — next time?",
+    "Called it off — your crush will wait",
     "Cancelled — still want to ride together later?",
   ];
   static const _rideCancelledKm = [
-    "ដំណើររបស់អ្នកត្រូវបានបោះបង់",
-    "ដំណើរត្រូវបានបោះបង់ អូន — លើកក្រោយ?",
-    "បានបោះបង់ — អូនរបស់អ្នកនឹងរង់ចាំ",
+    "ដំណើរត្រូវបាន Cancel",
+    "Cancel បាត់ហើយ — លើកក្រោយណា?",
+    "Cancel ចោលហើយ — ចាំជួបលើកក្រោយ",
   ];
   static const _cancelRideEn = [
     "Cancel ride",
-    "Never mind, Oun",
-    "Pass, next Oun",
+    "Never mind",
+    "Pass, next crush",
     "Cancel — not feeling this one",
     "Let him go",
   ];
   static const _cancelRideKm = [
-    "បោះបង់ដំណើរ",
-    "មិនអីទេ អូន",
-    "រំលង ទៅអ្នកបន្ទាប់",
-    "បោះបង់ — មិនចង់អ្នកនេះ",
+    "Cancel ដំណើរ",
+    "មិនអីទេ",
+    "រំលង ទៅរក Crush បន្ទាប់",
+    "Cancel ចោល — អត់ Feeling ជាមួយម្នាក់់នេះទេ",
   ];
   static const _backToDeckEn = [
     "Back to deck",
-    "Back to Ouns",
-    "Find another Oun",
+    "Find another ride",
     "Back to crushes",
-    "Keep swiping, Oun",
+    "Keep swiping",
   ];
   static const _backToDeckKm = [
-    "ត្រឡប់ទៅជ្រើសរើសវិញ",
-    "ត្រឡប់ទៅរក Oun",
-    "ស្វែងរក Oun ផ្សេង",
-    "ត្រឡប់ទៅ Crush",
-    "បន្តអូស អូន",
+    "ត្រឡប់ទៅមើល Crush វិញ",
+    "ត្រឡប់ទៅរកអ្នកផ្សេង",
+    "ស្វែងរក Crush ថ្មី",
+    "បន្ត Swipe ទៀត",
   ];
+
   static String rideCancelledNote(BuildContext context) {
     if (_isTest) return "Your ride was cancelled";
     capture(context);
@@ -620,41 +622,42 @@ class FlirtyCopy {
     return pick(_isKm ? _backToDeckKm : _backToDeckEn);
   }
 
+  // ── Ratings & Feedback ─────────────────────────────────────────────────────
   static const _howWasTripEn = [
     "How was your trip?",
-    "How was your time with Oun?",
     "Did you vibe together?",
     "How was the ride, darling?",
-    "Tell us, Oun — how was he?",
+    "Tell us — how was he?",
   ];
   static const _howWasTripKm = [
     "ដំណើររបស់អ្នកយ៉ាងណាដែរ?",
-    "ពេលវេលាជាមួយអូនយ៉ាងណាដែរ?",
-    "តើអ្នកទាំងពីរត្រូវគ្នាទេ?",
-    "ដំណើរយ៉ាងណាដែរ អូន?",
+    "នៅជាមួយ Crush មាន Vibe អត់?",
+    "ធ្លាប់អ្នកទាំងពីរត្រូវ Vibe គ្នាទេ?",
+    "ជិះជាមួយគ្នាមាន Sweet អត់?",
   ];
-  static const _thanksEn = ["Thanks!", "Thanks, Oun!", "You flirt — thanks!", "Love you, Oun! Thanks!"];
-  static const _thanksKm = ["អរគុណ!", "អរគុណ អូន!", "ស្រឡាញ់អ្នក អូន! អរគុណ!"];
+  static const _thanksEn = ["Thanks!", "You flirt — thanks!", "Love you! Thanks!"];
+  static const _thanksKm = ["អរគុណ!", "មនុស្សខូច — អរគុណណា!", "Love you, អរគុណច្រើន!"];
   static const _ratingHelpsEn = [
     "Your rating helps everyone ride safer.",
-    "Your tea helps the next Oun ride safer.",
+    "Your tea helps the next match ride safer.",
     "Help the next cutie choose — leave a rating.",
     "Share the love — rate your ride.",
   ];
   static const _ratingHelpsKm = [
-    "ការវាយតម្លៃរបស់អ្នកជួយឱ្យអ្នកទាំងអស់គ្នាធ្វើដំណើរបានសុវត្ថិភាព។",
-    "ការវាយតម្លៃរបស់អ្នកជួយ Oun បន្ទាប់",
-    "ចែករំលែកក្តីស្រឡាញ់ — វាយតម្លៃដំណើររបស់អ្នក",
+    "ការ Rate របស់អ្នក ជួយឱ្យអ្នកជិះក្រោយមានសុវត្ថិភាព",
+    "Spill the tea របស់អ្នក ជួយឱ្យអ្នកបន្ទាប់ដឹងចិត្ត",
+    "ចែករំលែកក្តីស្រឡាញ់ — ជួយ Rate ដំណើររបស់អ្នកផងណា",
   ];
   static const _alreadyRatedEn = [
     "You already rated this ride.",
     "You already spilled the tea on this one.",
-    "Already rated — you flirt, you finished!",
+    "Already rated — you flirt, you're all done!",
   ];
   static const _alreadyRatedKm = [
-    "អ្នកបានវាយតម្លៃដំណើរនេះរួចហើយ។",
-    "អ្នកបានវាយតម្លៃរួចហើយ",
+    "អ្នកបាន Rate ដំណើរនេះរួចហើយ។",
+    "Spill the tea រួចហើយសម្រាប់ជើងនេះ!",
   ];
+
   static String howWasTrip(BuildContext context) {
     if (_isTest) return "How was your trip?";
     capture(context);
@@ -664,8 +667,8 @@ class FlirtyCopy {
   static String howWasTripWith(BuildContext context, String name) {
     if (_isTest) return "How was your trip with $name?";
     capture(context);
-    if (_isKm) return pick(["ដំណើរជាមួយ $name យ៉ាងណាដែរ?", "ជាមួយ $name — យ៉ាងណាដែរ អូន?"]);
-    return pick(["How was your trip with $name?", "How was $name, Oun?", "Vibe check: how was $name?"]);
+    if (_isKm) return pick(["ដំណើរជាមួយ $name យ៉ាងណាមែន?", "ជាមួយ $name — Vibe អត់?"]);
+    return pick(["How was your trip with $name?", "How was $name?", "Vibe check: how was $name?"]);
   }
 
   static String thanksTitle(BuildContext context) {
@@ -686,27 +689,48 @@ class FlirtyCopy {
     return pick(_isKm ? _alreadyRatedKm : _alreadyRatedEn);
   }
 
-  static const _receivingEn = ["Receiving ride requests", "Ouns can request you", "Waiting for your next match", "Ready for your next Oun"];
-  static const _receivingKm = ["កំពុងទទួលសំណើរដំណើរ", "អូនអាចស្នើសុំអ្នក", "រង់ចាំ Match បន្ទាប់", "ត្រៀមសម្រាប់ Oun បន្ទាប់"];
+  // ── Driver Requests & Ride History ─────────────────────────────────────────
+  static const _receivingEn = [
+    "Receiving ride requests",
+    "Ouns can request you",
+    "Waiting for your next match",
+    "Ready for your next Oun",
+  ];
+  static const _receivingKm = [
+    "កំពុងទទួលសំណើរជិះ",
+    "អូនអាច Request មកបាន",
+    "រង់ចាំ Match បន្ទាប់",
+    "ត្រៀមខ្លួនសម្រាប់ Oun បន្ទាប់",
+  ];
+
   static String receivingRequests(BuildContext context) {
     if (_isTest) return "Receiving ride requests";
     capture(context);
     return pick(_isKm ? _receivingKm : _receivingEn);
   }
 
-  static const _noRidesYetEn = ["No rides yet", "No rides yet, Oun", "No love stories yet", "Your story hasn't started"];
-  static const _noRidesYetKm = ["មិនទាន់មានដំណើរ", "មិនទាន់មានដំណើរ អូន", "មិនទាន់មានរឿងស្នេហា"];
+  static const _noRidesYetEn = [
+    "No rides yet",
+    "No love stories yet",
+    "Your story hasn't started",
+  ];
+  static const _noRidesYetKm = [
+    "មិនទាន់មានដំណើរនៅឡើយ",
+    "មិនទាន់មានរឿងស្នេហាទេ",
+    "Story របស់អ្នកមិនទាន់ចាប់ផ្តើមទេ",
+  ];
   static const _historyHintEn = [
     "Your trips will show up here once you book or drive one.",
     "Swipe right and your love stories will show up here.",
     "Book a cutie and your history will bloom here.",
-    "No trips yet — your next Oun is waiting.",
+    "No trips yet — your next match is waiting.",
   ];
   static const _historyHintKm = [
-    "ដំណើររបស់អ្នកនឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីអ្នកកក់ឬបើកបរមួយ។",
-    "អូសត្រូវហើយរឿងស្នេហារបស់អ្នកនឹងបង្ហាញនៅទីនេះ",
-    "កក់អ្នកស្អាតម្នាក់ហើយប្រវត្តិរបស់អ្នកនឹងបង្ហាញ",
+    "ដំណើររបស់អ្នកនឹងបង្ហាញនៅទីនេះ ពេលអ្នកកក់ ឬបើកបរម្នាក់រួច។",
+    "Swipe Right ហើយ Story ស្នេហារបស់អ្នកនឹងបង្ហាញនៅទីនេះ",
+    "កក់ Crush ម្នាក់មក ប្រវត្តិរបស់អ្នកនឹងចាប់ផ្តើមហើយ",
   ];
+
   static String noRidesYetTitle(BuildContext context) {
     if (_isTest) return "No rides yet";
     capture(context);
@@ -725,9 +749,10 @@ class FlirtyCopy {
     "Finish a ride and your story starts here.",
   ];
   static const _activityHintKm = [
-    "ដំណើរដែលបានបញ្ចប់របស់អ្នកនឹងបង្ហាញនៅទីនេះ។",
-    "រឿងស្នេហារបស់អ្នកនឹងបង្ហាញនៅទីនេះ",
+    "ដំណើរដែលបានបញ្ចប់នឹងបង្ហាញនៅទីនេះ។",
+    "រឿងស្នេហានឹងបង្ហាញនៅទីនេះបន្ទាប់ពីអ្នកបានជិះរួច",
   ];
+
   static String activityEmptyHint(BuildContext context) {
     if (_isTest) return "Your completed trips will show up here.";
     capture(context);
