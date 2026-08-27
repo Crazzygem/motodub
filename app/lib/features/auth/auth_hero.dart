@@ -4,8 +4,7 @@ import "package:google_fonts/google_fonts.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 
-/// Shared login/register field chrome (§5 fields): surface-2 fill, 16 radius,
-/// leading icon, line border that turns DubOun sky on focus.
+/// leading icon, line border that turns Rausch on focus.
 InputDecoration authFieldDecoration(
   BuildContext context, {
   required String label,
@@ -25,13 +24,14 @@ InputDecoration authFieldDecoration(
     fillColor: tokens.inset,
     border: border(tokens.line),
     enabledBorder: border(tokens.line),
-    focusedBorder: border(AppColors.duboun, 1.6),
+    focusedBorder: border(AppColors.primary, 1.6),
   );
 }
 
-/// Login/register hero band: a sky DubOun gradient that melts into the
-/// canvas, carrying the DUBOUN wordmark (Sora 800, letterspaced like the
-/// deck-card watermark) and a one-line tagline. Purely presentational.
+/// Login/register hero band: a soft Rausch linear gradient (vertical) that
+/// melts into the canvas, carrying the DUBOUN wordmark. Matches screenshot
+/// [Image #1] — pale pink top, saturated band behind the wordmark, fade to
+/// white before the form. Purely presentational.
 class AuthHero extends StatelessWidget {
   const AuthHero({super.key, this.wordmark = "DUBOUN", this.tagline});
 
@@ -51,11 +51,12 @@ class AuthHero extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFE0F2FE), // dubounBg light top
-            AppColors.duboun.withValues(alpha: .16),
-            tokens.canvas,
+            const Color(0xFFFFEFF3), // almost-white pink — top status-bar edge
+            AppColors.primaryDisabled.withValues(alpha: 0.55), // #FFD1DA soft
+            AppColors.primary.withValues(alpha: 0.13), // Rausch band behind DUBOUN
+            tokens.canvas, // white before Email field
           ],
-          stops: const [0.0, 0.55, 1.0],
+          stops: const [0.0, 0.32, 0.58, 1.0],
         ),
       ),
       alignment: Alignment.center,
@@ -66,10 +67,10 @@ class AuthHero extends StatelessWidget {
           Text(
             wordmark,
             textAlign: TextAlign.center,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.inter(
               fontSize: 34,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 4,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 3.5,
               color: tokens.textPrimary,
             ),
           ),
