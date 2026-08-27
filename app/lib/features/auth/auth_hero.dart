@@ -51,12 +51,9 @@ class AuthHero extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFFFEFF3), // almost-white pink — top status-bar edge
-            AppColors.primaryDisabled.withValues(alpha: 0.55), // #FFD1DA soft
-            AppColors.primary.withValues(alpha: 0.13), // Rausch band behind DUBOUN
-            tokens.canvas, // white before Email field
+            AppColors.primaryDisabled, // uniform pale Rausch top
+            tokens.canvas, // white at form edge
           ],
-          stops: const [0.0, 0.32, 0.58, 1.0],
         ),
       ),
       alignment: Alignment.center,
