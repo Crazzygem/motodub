@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/auth/auth_state.dart";
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../account/account_screen.dart";
 import "../booking/booking_sheet.dart";
@@ -91,10 +92,9 @@ class _DeckTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     final mockMode = ref.watch(deckProvider.notifier).mockMode;
     final name = ref.watch(authProvider).valueOrNull?.name;
-    final greeting = localizedGreeting(l10n, DateTime.now(), name);
+    final greeting = FlirtyCopy.greeting(context, DateTime.now(), name);
 
     return SafeArea(
       child: Column(
@@ -107,7 +107,7 @@ class _DeckTab extends ConsumerWidget {
               children: [
                 Text(greeting, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 2),
-                Text(l10n.findYourRide,
+                Text(FlirtyCopy.deckTitle(context),
                     style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),

@@ -2,12 +2,12 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../core/api/error_messages.dart";
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/preferences/preferences_provider.dart" show appLocaleProvider;
 import "../../core/theme/app_theme.dart";
 import "../booking/booking_provider.dart" show rideRepoProvider;
-
 /// Localized status chip label ("en_route" → "En route" / Khmer twin).
 String localizedStatusLabel(AppLocalizations s, String status) =>
     switch (status) {
@@ -202,13 +202,16 @@ class _EmptyView extends StatelessWidget {
             children: [
               const Text("🧾", style: TextStyle(fontSize: 52)),
               const SizedBox(height: 12),
-              Text(context.l10n.noRidesYetTitle,
+              Text(FlirtyCopy.noRidesYetTitle(context),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 6),
-              Text(
-                context.l10n.historyEmptyHint,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  FlirtyCopy.historyEmptyHint(context),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             ],
           ),

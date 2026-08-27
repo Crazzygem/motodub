@@ -6,12 +6,12 @@ import "package:google_fonts/google_fonts.dart";
 import "package:latlong2/latlong.dart";
 
 import "../../core/api/error_messages.dart" show localizedErrorFor;
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
 import "../shared/driver_photo_avatar.dart";
 import "booking_provider.dart";
-
 /// OpenStreetMap raster tiles — no API key (locked decision 9).
 const String kOsmTileUrl =
     "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -186,7 +186,7 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                 FilledButton(
                   onPressed: form.submitting ? null : _confirm,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.bookGreen,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                   ),
@@ -196,11 +196,11 @@ class _BookingSheetState extends ConsumerState<BookingSheet> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(l10n.confirmBooking),
+                      : Text(FlirtyCopy.confirmBooking(context)),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  l10n.payCashNote,
+                  FlirtyCopy.payCashNote(context),
                   textAlign: TextAlign.center,
                   style: jakarta.labelSmall,
                 ),

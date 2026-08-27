@@ -5,6 +5,7 @@ import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 import "package:latlong2/latlong.dart";
 
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
@@ -134,7 +135,7 @@ class _Content extends StatelessWidget {
                   // Waiting — no card yet, but the customer stays in control.
                   "requested" => [
                       Text(
-                        l10nOf(context).waitingForDriver,
+                        FlirtyCopy.waitingForDriver(context),
                         textAlign: TextAlign.center,
                         style: jakarta.bodyMedium,
                       ),
@@ -147,7 +148,7 @@ class _Content extends StatelessWidget {
                       _CancelButton(canceling: tracking.canceling, onCancel: onCancel),
                     ],
                   "completed" => [
-                      Text(l10nOf(context).completedEmoji, textAlign: TextAlign.center,
+                      Text(FlirtyCopy.isTest ? "Completed 🎉" : "${FlirtyCopy.stepDone(context)} 🎉", textAlign: TextAlign.center,
                           style: GoogleFonts.sora(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -155,11 +156,11 @@ class _Content extends StatelessWidget {
                     ],
                   "declined" => [
                       _TerminalNote(
-                        message: l10nOf(context).driverPassedNote,
+                        message: FlirtyCopy.driverPassedNote(context),
                       ),
                     ],
                   _ => [
-                      _TerminalNote(message: l10nOf(context).rideCancelledNote),
+                      _TerminalNote(message: FlirtyCopy.rideCancelledNote(context)),
                     ],
                 },
               ],
@@ -270,13 +271,12 @@ class _StatusStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = l10nOf(context);
     final steps = <({String title, String status})>[
-      (title: s.stepRequested, status: "requested"),
-      (title: s.stepAccepted, status: "accepted"),
-      (title: s.stepEnRoute, status: "en_route"),
-      (title: s.stepRiding, status: "in_progress"),
-      (title: s.stepDone, status: "completed"),
+      (title: FlirtyCopy.stepRequested(context), status: "requested"),
+      (title: FlirtyCopy.stepAccepted(context), status: "accepted"),
+      (title: FlirtyCopy.stepEnRoute(context), status: "en_route"),
+      (title: FlirtyCopy.stepRiding(context), status: "in_progress"),
+      (title: FlirtyCopy.stepDone(context), status: "completed"),
     ];
     final current = steps.indexWhere((st) => st.status == status);
     if (current < 0) return const SizedBox.shrink();
@@ -494,8 +494,6 @@ class _DriverCard extends StatelessWidget {
 
 // --- buttons & notes -------------------------------------------------------------
 
-/// Destructive action styled like the request-card Decline (white bg,
-/// red text, red border — DESIGN §5); disabled while the call is in flight.
 class _CancelButton extends StatelessWidget {
   const _CancelButton({required this.canceling, required this.onCancel});
 
@@ -521,11 +519,10 @@ class _CancelButton extends StatelessWidget {
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(l10nOf(context).cancelRide),
+          : Text(FlirtyCopy.cancelRide(context)),
     );
   }
 }
-
 class _TerminalNote extends StatelessWidget {
   const _TerminalNote({required this.message});
 
@@ -554,7 +551,7 @@ class _TerminalNote extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton.tonal(
           onPressed: () => context.go("/customer"),
-          child: Text(l10nOf(context).backToDeck),
+          child: Text(FlirtyCopy.backToDeck(context)),
         ),
       ],
     );

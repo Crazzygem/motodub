@@ -2,10 +2,10 @@ import "dart:math" as math;
 
 import "package:flutter/material.dart";
 
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
-
 /// Great-circle distance in km (client-side twin of the server's
 /// `utils/distance.js`, fed straight from the ride payload coords).
 double haversineKm(double lat1, double lng1, double lat2, double lng2) {
@@ -133,21 +133,6 @@ class RequestCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.bookGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: onAccept,
-                  child: Text(s.acceptButton),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: tokens.card,
@@ -159,7 +144,22 @@ class RequestCard extends StatelessWidget {
                     ),
                   ),
                   onPressed: onDecline,
-                  child: Text(s.declineButton),
+                  child: Text(FlirtyCopy.declineButton(context)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: onAccept,
+                  child: Text(FlirtyCopy.acceptButton(context)),
                 ),
               ),
             ],

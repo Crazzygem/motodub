@@ -1,9 +1,9 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
-
 import "../../core/api/api_client.dart";
 import "../../core/api/ride_repo.dart";
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/models/driver.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
@@ -169,7 +169,6 @@ class _StatusCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    final s = context.l10n;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -186,11 +185,15 @@ class _StatusCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  state.online ? s.youAreOnline : s.youAreOffline,
+                  state.online
+                      ? FlirtyCopy.youAreOnline(context)
+                      : FlirtyCopy.youAreOffline(context),
                   style: theme.textTheme.titleMedium,
                 ),
                 Text(
-                  state.online ? s.receivingRequests : s.goOnlineHint,
+                  state.online
+                      ? FlirtyCopy.receivingRequests(context)
+                      : FlirtyCopy.goOnlineHint(context),
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -383,9 +386,9 @@ class _VehicleSetupFormState extends State<_VehicleSetupForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(s.setupVehicleTitle, style: theme.textTheme.titleMedium),
+            Text(FlirtyCopy.setupVehicleTitle(context), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(s.setupVehicleSubtitle, style: theme.textTheme.bodyMedium),
+            Text(FlirtyCopy.setupVehicleSubtitle(context), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 14),
             TextFormField(
               controller: _carModel,
@@ -744,11 +747,11 @@ class _ActivityEmpty extends StatelessWidget {
           const Text("🗒️", textAlign: TextAlign.center,
               style: TextStyle(fontSize: 30)),
           const SizedBox(height: 8),
-          Text(context.l10n.activityEmptyTitle,
+          Text(FlirtyCopy.activityEmptyTitle(context),
               textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            context.l10n.activityEmptyHint,
+            FlirtyCopy.activityEmptyHint(context),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

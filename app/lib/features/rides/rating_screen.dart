@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/api/error_messages.dart" show localizedErrorFor;
 import "../../core/models/ride.dart";
@@ -230,23 +231,24 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
 }
 
 // --- party ------------------------------------------------------------------------
-
-/// The OTHER party, per viewer role: customers rate their driver, drivers
-/// rate their rider. Falls back across snapshots so odd rows still render.
 ({String name, String caption}) _party(
-    Ride ride, String? viewerRole, AppLocalizations s) {
+    Ride ride, String? viewerRole, AppLocalizations s, BuildContext context) {
   final ratesRider = viewerRole == "driver";
   final snapshot = ratesRider ? ride.customerName : ride.driverName;
   final name =
       (snapshot == null || snapshot.trim().isEmpty) ? null : snapshot.trim();
 
+  if (name == null) {
+    return (
+      name: ratesRider ? s.yourRiderFallback : s.yourDriverFallback,
+      caption: FlirtyCopy.howWasTrip(context),
+    );
+  }
   return (
-    name: name ?? (ratesRider ? s.yourRiderFallback : s.yourDriverFallback),
-    caption:
-        name == null ? s.howWasTrip : s.howWasTripWith(name),
+    name: name,
+    caption: FlirtyCopy.howWasTripWith(context, name),
   );
 }
-
 /// DESIGN.md §8 avatar fallback everywhere: initials tile on an amber
 /// gradient, ink letter, white ring — no broken-image icons, ever.
 class _PartyAvatar extends StatelessWidget {
@@ -313,7 +315,7 @@ class _RateForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final party = _party(ride, viewerRole, context.l10n);
+    final party = _party(ride, viewerRole, context.l10n, context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -327,7 +329,7 @@ class _RateForm extends StatelessWidget {
                 icon: const Icon(Icons.arrow_back_rounded),
               ),
               Expanded(
-                child: Text(context.l10n.rateYourTrip,
+                child: Text(FlirtyCopy.rateYourTrip(context),
                     style: theme.textTheme.titleLarge),
               ),
             ],
@@ -403,8 +405,6 @@ class _RateForm extends StatelessWidget {
   }
 }
 
-// --- thanks & errors ---------------------------------------------------------------
-
 class _ThanksCard extends StatelessWidget {
   const _ThanksCard({required this.alreadyRated, required this.onDone});
 
@@ -424,7 +424,7 @@ class _ThanksCard extends StatelessWidget {
             const Icon(Icons.check_circle_rounded,
                 color: AppColors.bookGreen, size: 68),
             const SizedBox(height: 14),
-            Text(l10nOf(context).thanksTitle,
+            Text(FlirtyCopy.thanksTitle(context),
                 style: GoogleFonts.sora(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -432,8 +432,8 @@ class _ThanksCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               alreadyRated
-                  ? l10nOf(context).alreadyRatedNote
-                  : l10nOf(context).ratingHelpsNote,
+                  ? FlirtyCopy.alreadyRatedNote(context)
+                  : FlirtyCopy.ratingHelpsNote(context),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),

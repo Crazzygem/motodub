@@ -1,9 +1,8 @@
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
-import "../../core/l10n/l10n.dart";
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/theme/app_theme.dart";
-
 /// leading icon, line border that turns Rausch on focus.
 InputDecoration authFieldDecoration(
   BuildContext context, {
@@ -37,13 +36,14 @@ class AuthHero extends StatelessWidget {
 
   final String wordmark;
 
-  /// Null → localized default ("Ride smart. Go far.").
+  /// Null → random flirty tagline (all 20, Option B).
   final String? tagline;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = tokensOf(context);
+    final flirtyTagline = tagline ?? FlirtyCopy.tagline(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -73,7 +73,7 @@ class AuthHero extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            tagline ?? context.l10n.appTagline,
+            flirtyTagline,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

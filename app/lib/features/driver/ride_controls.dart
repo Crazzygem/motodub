@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/ride.dart";
 import "../../core/theme/app_theme.dart";
@@ -26,7 +27,6 @@ class RideControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
-    final s = context.l10n;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -41,7 +41,7 @@ class RideControls extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final (i, step) in localizedSteps(s).indexed) ...[
+              for (final (i, step) in flirtySteps(context).indexed) ...[
                 if (i > 0) const _StepLine(),
                 Expanded(child: _StepDot(step: step, ride: ride)),
               ],
@@ -54,41 +54,36 @@ class RideControls extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 14),
-          ...switch (ride.status) {
-            "accepted" => [
-                _cta(
-                  context,
-                  label: s.onMyWayCta,
-                  background: AppColors.amber,
-                  onPressed: onStart,
-                ),
-              ],
-            "en_route" => [
-                _cta(
-                  context,
-                  label: s.startRideCta,
-                  background: AppColors.amber,
-                  onPressed: onStartRide,
-                ),
-              ],
-            "in_progress" => [
-                _cta(
-                  context,
-                  label: s.endRideCta,
-                  background: AppColors.amber,
-                  onPressed: onComplete,
-                ),
-              ],
-            "completed" => [
-                _cta(
-                  context,
-                  label: s.completedEmoji,
-                  background: AppColors.bookGreen,
-                  onPressed: null,
-                ),
-              ],
-            _ => const <Widget>[],
-          },
+          if (ride.status == "accepted")
+            _cta(
+              context,
+              label: FlirtyCopy.onMyWayCta(context),
+              background: AppColors.primary,
+              onPressed: onStart,
+            ),
+          if (ride.status == "en_route")
+            _cta(
+              context,
+              label: FlirtyCopy.startRideCta(context),
+              background: AppColors.primary,
+              onPressed: onStartRide,
+            ),
+          if (ride.status == "in_progress")
+            _cta(
+              context,
+              label: FlirtyCopy.endRideCta(context),
+              background: AppColors.primary,
+              onPressed: onComplete,
+            ),
+          if (ride.status == "completed")
+            _cta(
+              context,
+              label: FlirtyCopy.isTest
+                  ? "Completed 🎉"
+                  : "${FlirtyCopy.stepDone(context)} 🎉",
+              background: AppColors.bookGreen,
+              onPressed: null,
+            ),
         ],
       ),
     );
@@ -126,6 +121,14 @@ List<({String title, String status})> localizedSteps(AppLocalizations s) => [
       (title: s.stepDone, status: "completed"),
     ];
 
+/// Flirty twin — random pools, BuildContext locale-aware.
+List<({String title, String status})> flirtySteps(BuildContext context) => [
+      (title: FlirtyCopy.stepAccepted(context), status: "accepted"),
+      (title: FlirtyCopy.stepEnRoute(context), status: "en_route"),
+      (title: FlirtyCopy.stepRiding(context), status: "in_progress"),
+      (title: FlirtyCopy.stepDone(context), status: "completed"),
+    ];
+
 class _StepDot extends StatelessWidget {
   const _StepDot({required this.step, required this.ride});
 
@@ -134,7 +137,7 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = localizedSteps(l10nOf(context));
+    final steps = flirtySteps(context);
     final stepIndex = steps.indexWhere((st) => st.status == step.status);
     final rideIndex = steps.indexWhere((st) => st.status == ride.status);
     final reached = rideIndex >= 0 && stepIndex <= rideIndex;

@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:google_fonts/google_fonts.dart";
 
 import "../../core/api/api_client.dart";
+import "../../core/flirty/flirty_copy.dart";
 import "../../core/l10n/l10n.dart";
 import "../../core/models/driver.dart";
 import "../../core/theme/app_theme.dart";
@@ -282,15 +283,12 @@ class _SwipeDeckState extends ConsumerState<SwipeDeck>
 
 // --- swipe-direction wash -----------------------------------------------------
 
-/// Swipe-direction wash (Seth directive — replaces the §6 BOOK/PASS stamps):
-/// green toward a book commit, red toward a pass commit, ramping with the
-/// same |dx|/110 ease the stamps used. During fly-out the offset runs past
-/// ±110 so the tint pins at full strength, then fades with the card's own
-/// opacity animation as the next card arrives.
+/// Flirty gradient wash — keeps the gradient-only directive (no BOOK/PASS
+/// wording). Right = warm Rausch bloom (the "yes, Oun" blush), left = cool
+/// muted fade. Ramps with |dx|/110; during fly-out pins at full then fades
+/// with card opacity.
 ///
-/// Listenable-driven: drag frames rebuild only this Opacity+gradient inside
-/// their own RepaintBoundary — the photo, shade, watermark and info block
-/// behind it are never touched.
+/// Listenable-driven: only this gradient repaints on drag frames.
 class _SwipeWash extends StatelessWidget {
   const _SwipeWash(this._motion);
 
@@ -305,7 +303,14 @@ class _SwipeWash extends StatelessWidget {
           valueListenable: _motion.washProgress,
           builder: (_, progress, _) {
             final books = progress >= 0;
-            final tint = books ? AppColors.bookGreen : AppColors.passRed;
+            final isTest = FlirtyCopy.isTest;
+            // Flirty prod: Rausch blush vs muted slate; test: original green/red
+            final base = isTest
+                ? (books ? AppColors.bookGreen : AppColors.passRed)
+                : (books ? AppColors.primary : AppColors.muted);
+            final mid = isTest
+                ? (books ? AppColors.bookGreen : AppColors.passRed)
+                : (books ? const Color(0xFFFF6B8A) : const Color(0xFF9CA3AF));
             return Opacity(
               opacity: progress.abs(),
               child: DecoratedBox(
@@ -314,10 +319,17 @@ class _SwipeWash extends StatelessWidget {
                     begin:
                         books ? Alignment.centerLeft : Alignment.centerRight,
                     end: books ? Alignment.centerRight : Alignment.centerLeft,
-                    colors: [
-                      tint.withValues(alpha: 0),
-                      tint.withValues(alpha: .6),
-                    ],
+                    colors: isTest
+                        ? [
+                            base.withValues(alpha: 0),
+                            base.withValues(alpha: .6),
+                          ]
+                        : [
+                            base.withValues(alpha: 0),
+                            mid.withValues(alpha: books ? .45 : .38),
+                            base.withValues(alpha: books ? .58 : .42),
+                          ],
+                    stops: isTest ? null : const [0.0, 0.45, 1.0],
                   ),
                 ),
               ),
@@ -406,7 +418,7 @@ class _DeckEmpty extends ConsumerWidget {
         const Text("🛵", style: TextStyle(fontSize: 44)),
         const SizedBox(height: 12),
         Text(
-          s.noDriversOnlineTitle,
+          FlirtyCopy.noDriversTitle(context),
           style: GoogleFonts.sora(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -415,7 +427,7 @@ class _DeckEmpty extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          s.noDriversOnlineHint,
+          FlirtyCopy.noDriversHint(context),
           textAlign: TextAlign.center,
           style: Theme.of(context)
               .textTheme
@@ -432,7 +444,6 @@ class _DeckEmpty extends ConsumerWidget {
     );
   }
 }
-
 class _DeckError extends ConsumerWidget {
   const _DeckError({required this.message});
 
