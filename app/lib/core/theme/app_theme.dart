@@ -1,37 +1,93 @@
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
-/// Design tokens — DubOun palette (rebranded from MotoDub Amber 2026-08-27).
-/// Neutrals (bg/surface/ink/muted/faint/line) unchanged; brand family now sky.
+/// Design tokens — Airbnb (DESIGN.md v=alpha, 2026-08-27).
+/// Single brand voltage Rausch #ff385c on pure white canvas, Inter as
+/// open-source substitute for Airbnb Cereal VF per spec note (Inter fallback,
+/// line-height tightened 2% on display to match cap height).
 abstract final class AppColors {
-  static const bg = Color(0xFFFAFAF9); // app canvas
-  static const surface = Color(0xFFFFFFFF); // cards, sheets, nav
-  static const ink = Color(0xFF111827); // primary text, dark elements
-  // DubOun brand — sky
-  static const duboun = Color(0xFF0EA5E9); // primary brand
-  static const dubounHover = Color(0xFF38BDF8);
-  static const dubounDeep = Color(0xFF0369A1); // text-on-duboun, active nav
-  // Deprecated aliases — keep MotoDub code compiling, all point to DubOun.
-  @Deprecated('Use duboun') static const amber = duboun;
-  @Deprecated('Use dubounHover') static const amberHover = dubounHover;
-  @Deprecated('Use dubounDeep') static const amberDeep = dubounDeep;
-  static const bookGreen = Color(0xFF10B981); // BOOK action, success
-  static const passRed = Color(0xFFEF4444); // PASS action, destructive
-  static const muted = Color(0xFF6B7280); // secondary text
-  static const faint = Color(0xFF9CA3AF); // tertiary text, placeholders
-  static const line = Color(0xFFE5E7EB); // borders, dividers
-  static const surface2 = Color(0xFFF9FAFB); // inset fields, trip boxes
-  // Chip tints — warn now sky-tinted to match DubOun
-  static const warnBg = Color(0xFFE0F2FE); // was #FEF3C7 amber tint
+  // Canvas & surfaces — Airbnb is 90% white
+  static const bg = Color(0xFFFFFFFF); // canvas #ffffff
+  static const surface = Color(0xFFFFFFFF); // surface-card
+  static const surfaceSoft = Color(0xFFF7F7F7);
+  static const surfaceStrong = Color(0xFFF2F2F2);
+  // Keep legacy names for call sites
+  static const surface2 = surfaceSoft;
+
+  // Text
+  static const ink = Color(0xFF222222);
+  static const body = Color(0xFF3F3F3F);
+  static const muted = Color(0xFF6A6A6A);
+  static const faint = Color(0xFF929292); // muted-soft
+  static const starRating = Color(0xFF222222);
+
+  // Hairlines & borders
+  static const line = Color(0xFFDDDDDD); // hairline
+  static const lineSoft = Color(0xFFEBEBEB); // hairline-soft
+  static const borderStrong = Color(0xFFC1C1C1);
+  static const scrim = Color(0xFF000000);
+
+  // Brand — Rausch
+  static const primary = Color(0xFFFF385C);
+  static const primaryActive = Color(0xFFE00B41);
+  static const primaryDisabled = Color(0xFFFFD1DA);
+  static const errorText = Color(0xFFC13515);
+  static const errorTextHover = Color(0xFFB32505);
+  static const luxe = Color(0xFF460479);
+  static const plus = Color(0xFF92174D);
+  static const onPrimary = Color(0xFFFFFFFF);
+  static const legalLink = Color(0xFF428BFF);
+
+  // Sub-brand is never mainline — keep tokens but don't use in App Theme
+  // Deprecated aliases — old MotoDub/DubOun code (amber/sky) now maps to Rausch
+  @Deprecated('Use primary')
+  static const duboun = primary;
+  @Deprecated('Use primaryActive')
+  static const dubounHover = primaryActive;
+  @Deprecated('Use primaryActive')
+  static const dubounDeep = primaryActive;
+  @Deprecated('Use primary')
+  static const amber = primary;
+  @Deprecated('Use primaryActive')
+  static const amberHover = primaryActive;
+  @Deprecated('Use primaryActive')
+  static const amberDeep = primaryActive;
+
+  // Functional — keep for ride states
+  static const bookGreen = Color(0xFF10B981);
+  static const passRed = Color(0xFFEF4444);
+
+  // Chip tints — warm Rausch tint for pending, keep others
+  static const warnBg = Color(0xFFFFE8EC); // pale Rausch, was sky #E0F2FE
   static const okBg = Color(0xFFD1FAE5);
   static const badBg = Color(0xFFFEE2E2);
 }
 
-/// Brightness-sensitive neutral tokens (Task C dark theme): everything the
-/// screens used to read straight off [AppColors] constants now comes from
-/// this extension so one ThemeData swap flips canvas/cards/text together.
-/// Brand hues (amber/green/red) stay constant across modes and remain on
-/// [AppColors].
+/// Spacing — Airbnb 4px base (DESIGN.md spacing)
+abstract final class AppSpacing {
+  static const xxs = 2.0;
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const base = 16.0;
+  static const lg = 24.0;
+  static const xl = 32.0;
+  static const xxl = 48.0;
+  static const section = 64.0;
+}
+
+/// Radii — Airbnb soft system (DESIGN.md rounded)
+abstract final class AppRadii {
+  static const xs = 4.0;
+  static const sm = 8.0; // buttons
+  static const md = 14.0; // property cards
+  static const lg = 20.0;
+  static const xl = 32.0;
+  static const full = 9999.0;
+}
+
+/// Brightness-sensitive neutral tokens: one ThemeData swap flips canvas/cards/text.
+/// Brand hues (Rausch) stay constant across modes.
 @immutable
 class MotoTokens extends ThemeExtension<MotoTokens> {
   const MotoTokens({
@@ -53,19 +109,18 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
   final Color textSecondary;
   final Color textTertiary;
 
-  /// DubOun-family text/icon accent that must stay legible on [card]
-  /// (dubounDeep in light, dubounHover in dark).
+  /// Rausch-family accent that must stay legible on [card]
   final Color accentStrong;
 
   static const light = MotoTokens(
     canvas: AppColors.bg,
     card: AppColors.surface,
     line: AppColors.line,
-    inset: AppColors.surface2,
+    inset: AppColors.surfaceSoft,
     textPrimary: AppColors.ink,
     textSecondary: AppColors.muted,
     textTertiary: AppColors.faint,
-    accentStrong: AppColors.dubounDeep,
+    accentStrong: AppColors.primary,
   );
 
   static const dark = MotoTokens(
@@ -76,7 +131,7 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
     textPrimary: Color(0xFFF3F4F6),
     textSecondary: Color(0xFF9CA3AF),
     textTertiary: Color(0xFF6B7280),
-    accentStrong: AppColors.dubounHover,
+    accentStrong: AppColors.primary,
   );
 
   @override
@@ -121,106 +176,218 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
 MotoTokens tokensOf(BuildContext context) =>
     Theme.of(context).extension<MotoTokens>() ?? MotoTokens.light;
 
-/// Typography from DESIGN.md §3 — Sora 800/700 headings, Plus Jakarta Sans body.
-/// One builder for both brightnesses: same seeds and fonts, neutrals flip.
+/// Inter as open-source substitute for Airbnb Cereal VF per DESIGN.md note.
+/// Display: 22–28 @ 500/600/700, body 14–16 @ 400, buttons 14–16 @ 500.
 ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
   final dark = brightness == Brightness.dark;
-  const soraInk = Color(0xFF111827);
-  final inkText = dark ? const Color(0xFFF3F4F6) : soraInk;
+  const ink = Color(0xFF222222);
+  final inkText = dark ? const Color(0xFFF3F4F6) : ink;
   final mutedText = dark ? const Color(0xFF9CA3AF) : AppColors.muted;
-  final faintText = dark ? const Color(0xFF6B7280) : AppColors.faint;
   final tokens = dark ? MotoTokens.dark : MotoTokens.light;
 
-  final jakarta = GoogleFonts.plusJakartaSansTextTheme();
-  final sora = GoogleFonts.soraTextTheme();
+  // Inter — closest open substitute for Airbnb Cereal VF. Tighten display
+  // line-heights ~2% per spec to match Cereal's cap height.
+  final inter = GoogleFonts.interTextTheme();
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.duboun,
+      seedColor: AppColors.primary,
       brightness: brightness,
     ).copyWith(
-      primary: AppColors.duboun,
-      onPrimary: AppColors.ink, // DubOun sky also carries ink text (light brand)
-      secondary: AppColors.dubounDeep,
-      onSecondary: Colors.white,
-      error: AppColors.passRed,
+      primary: AppColors.primary,
+      onPrimary: AppColors.onPrimary, // white on Rausch
+      primaryContainer: AppColors.primaryActive,
+      secondary: AppColors.primaryActive,
+      onSecondary: AppColors.onPrimary,
+      error: AppColors.errorText,
       surface: tokens.card,
       onSurface: inkText,
       outline: tokens.line,
+      outlineVariant: AppColors.lineSoft,
     ),
     scaffoldBackgroundColor: tokens.canvas,
     extensions: [tokens],
-    // Shared M3 bottom-nav chrome for every role shell: DubOun selection
-    // (indicator wash + active token icon/label, §2 "active nav" token).
+    // Airbnb elevation: single shadow tier or flat — keep nav flat
+    appBarTheme: AppBarTheme(
+      backgroundColor: tokens.card,
+      foregroundColor: inkText,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: inkText,
+      ),
+    ),
+    // Bottom nav: Airbnb product tabs are text + underline, but for the taxi
+    // app we keep a Material 3 NavigationBar with Rausch indicator.
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: tokens.card,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: AppColors.duboun.withValues(alpha: .16),
+      indicatorColor: AppColors.primary.withValues(alpha: .12),
       elevation: 0,
       height: 68,
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           size: 22,
           color: states.contains(WidgetState.selected)
-              ? tokens.accentStrong
+              ? AppColors.primary
               : mutedText,
         ),
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
+          fontFamily: GoogleFonts.inter().fontFamily,
           fontSize: 12,
           fontWeight: states.contains(WidgetState.selected)
               ? FontWeight.w700
               : FontWeight.w500,
           color: states.contains(WidgetState.selected)
-              ? tokens.accentStrong
+              ? AppColors.primary
               : mutedText,
         ),
       ),
     ),
-    textTheme: jakarta.copyWith(
-      // Headings: Sora (display 26 · screen title 18–20 · card name 16–17)
-      displaySmall: sora.displaySmall?.copyWith(
-        fontSize: 26,
-        fontWeight: FontWeight.w800,
-        color: inkText,
+    cardTheme: CardThemeData(
+      color: tokens.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        side: BorderSide(color: tokens.line, width: 1),
       ),
-      titleLarge: sora.titleLarge?.copyWith(
-        fontSize: 20,
+      shadowColor: Colors.black.withValues(alpha: .08),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        disabledBackgroundColor: AppColors.primaryDisabled,
+        disabledForegroundColor: AppColors.onPrimary,
+        textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.ink,
+        side: const BorderSide(color: AppColors.line),
+        textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
+        padding: const EdgeInsets.symmetric(horizontal: 23, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.ink,
+        textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        borderSide: const BorderSide(color: AppColors.ink, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        borderSide: const BorderSide(color: AppColors.errorText),
+      ),
+      labelStyle: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.muted,
+      ),
+      hintStyle: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: AppColors.faint,
+      ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.line,
+      thickness: 1,
+      space: 1,
+    ),
+    textTheme: inter.copyWith(
+      // display-xl 28/700 — hero h1
+      displaySmall: GoogleFonts.inter(
+        fontSize: 28,
         fontWeight: FontWeight.w700,
+        height: 1.43 * 0.98, // tighten 2% per Cereal→Inter note
+        letterSpacing: 0,
         color: inkText,
       ),
-      titleMedium: sora.titleMedium?.copyWith(
-        fontSize: 17,
+      // display-lg 22/500 — listing detail h1
+      titleLarge: GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.w500,
+        height: 1.18 * 0.98,
+        letterSpacing: -0.44,
+        color: inkText,
+      ),
+      // display-md 21/700
+      titleMedium: GoogleFonts.inter(
+        fontSize: 21,
         fontWeight: FontWeight.w700,
+        height: 1.43,
         color: inkText,
       ),
-      // Body/UI: Plus Jakarta Sans (body 14 · meta 12 · micro 10.5)
-      bodyLarge: jakarta.bodyLarge?.copyWith(
+      // title-md 16/600 — city blocks
+      titleSmall: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        height: 1.25,
+        color: inkText,
+      ),
+      // body-md 16/400
+      bodyLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: dark ? inkText : AppColors.body,
+      ),
+      // body-sm 14/400 — card meta, dates
+      bodyMedium: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: inkText,
-      ),
-      bodyMedium: jakarta.bodyMedium?.copyWith(
-        fontSize: 13.5,
-        fontWeight: FontWeight.w400,
+        height: 1.43,
         color: mutedText,
       ),
-      labelLarge: jakarta.labelLarge?.copyWith(
+      // caption 14/500
+      labelLarge: GoogleFonts.inter(
         fontSize: 14,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
+        height: 1.29,
         color: inkText,
       ),
-      labelMedium: jakarta.labelMedium?.copyWith(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+      // caption-sm 13/400 — legal
+      labelMedium: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        height: 1.23,
         color: mutedText,
       ),
-      labelSmall: jakarta.labelSmall?.copyWith(
-        fontSize: 10.5,
+      // badge 11/600
+      labelSmall: GoogleFonts.inter(
+        fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: faintText,
+        height: 1.18,
+        color: inkText,
       ),
     ),
   );
