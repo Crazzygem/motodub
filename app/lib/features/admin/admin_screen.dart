@@ -134,7 +134,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "MotoDub",
+                  "DubOun",
                   style: theme.textTheme.titleMedium
                       ?.copyWith(color: Colors.white),
                 ),

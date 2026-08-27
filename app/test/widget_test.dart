@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/app.dart";
+import "package:duboun/app.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 void main() {
@@ -10,18 +10,18 @@ void main() {
   });
 
   testWidgets("app boots to the login screen", (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MotoDubApp()));
+    await tester.pumpWidget(const ProviderScope(child: DubOunApp()));
     await pump(tester);
 
     // The redesigned hero band: wordmark + tagline.
-    expect(find.text("MOTODUB"), findsOneWidget);
+    expect(find.text("DUBOUN"), findsOneWidget);
     expect(find.text("Ride smart. Go far."), findsOneWidget);
     expect(find.text("Log in"), findsOneWidget);
   });
 
   testWidgets("login shows validation errors for empty/invalid input",
       (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MotoDubApp()));
+    await tester.pumpWidget(const ProviderScope(child: DubOunApp()));
     await pump(tester);
 
     await tester.enterText(find.widgetWithText(TextFormField, "Email"), "bad");

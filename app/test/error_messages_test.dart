@@ -3,8 +3,8 @@ import "dart:typed_data";
 
 import "package:dio/dio.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/error_messages.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/error_messages.dart";
 
 /// Routes every request to [handler] — no network, no new deps.
 class _FakeAdapter implements HttpClientAdapter {

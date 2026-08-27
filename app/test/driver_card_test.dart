@@ -1,12 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/theme/app_theme.dart";
-import "package:motodub/features/deck/deck_provider.dart";
-import "package:motodub/features/deck/driver_card.dart";
-import "package:motodub/features/deck/swipe_deck.dart";
-import "package:motodub/features/shared/photo_viewer.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/theme/app_theme.dart";
+import "package:duboun/features/deck/deck_provider.dart";
+import "package:duboun/features/deck/driver_card.dart";
+import "package:duboun/features/deck/swipe_deck.dart";
+import "package:duboun/features/shared/photo_viewer.dart";
 
 Driver _sampleDriver() => const Driver(
       id: 1,
@@ -190,8 +190,8 @@ void main() {
     final hero = _heroImage(tester);
     expect(hero, isNotNull);
     expect(hero!.url, "http://10.0.2.2:3000/uploads/bike.png");
-    // The MOTODUB watermark stays readable above the photo.
-    expect(find.text("MOTODUB"), findsOneWidget);
+    // The DUBOUN watermark stays readable above the photo.
+    expect(find.text("DUBOUN"), findsOneWidget);
   });
 
   testWidgets("a relative vehicle_photo resolves against the API base URL",
@@ -273,7 +273,7 @@ void main() {
 
     expect(find.byType(PhotoViewer), findsOneWidget);
     // Watermark stays card chrome — the viewer shows the raw photo.
-    expect(find.text("MOTODUB"), findsOneWidget);
+    expect(find.text("DUBOUN"), findsOneWidget);
   });
 
   testWidgets("a card without a vehicle photo has no photo tap target",

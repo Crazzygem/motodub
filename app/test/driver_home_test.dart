@@ -4,18 +4,18 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/driver_repo.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/api/socket_client.dart";
-import "package:motodub/core/auth/auth_state.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/router/app_router.dart";
-import "package:motodub/features/booking/booking_provider.dart" show rideRepoProvider;
-import "package:motodub/features/deck/deck_provider.dart" show driverRepoProvider;
-import "package:motodub/features/driver/driver_home_screen.dart";
-import "package:motodub/features/driver/driver_provider.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/driver_repo.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/api/socket_client.dart";
+import "package:duboun/core/auth/auth_state.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/router/app_router.dart";
+import "package:duboun/features/booking/booking_provider.dart" show rideRepoProvider;
+import "package:duboun/features/deck/deck_provider.dart" show driverRepoProvider;
+import "package:duboun/features/driver/driver_home_screen.dart";
+import "package:duboun/features/driver/driver_provider.dart";
 
 const _vehicle = Driver(
   id: 4,

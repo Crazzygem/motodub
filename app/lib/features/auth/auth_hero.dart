@@ -5,7 +5,7 @@ import "../../core/l10n/l10n.dart";
 import "../../core/theme/app_theme.dart";
 
 /// Shared login/register field chrome (§5 fields): surface-2 fill, 16 radius,
-/// leading icon, line border that turns amber on focus.
+/// leading icon, line border that turns DubOun sky on focus.
 InputDecoration authFieldDecoration(
   BuildContext context, {
   required String label,
@@ -25,15 +25,15 @@ InputDecoration authFieldDecoration(
     fillColor: tokens.inset,
     border: border(tokens.line),
     enabledBorder: border(tokens.line),
-    focusedBorder: border(AppColors.amber, 1.6),
+    focusedBorder: border(AppColors.duboun, 1.6),
   );
 }
 
-/// Login/register hero band: a warm amber gradient that melts into the
-/// canvas, carrying the MOTODUB wordmark (Sora 800, letterspaced like the
+/// Login/register hero band: a sky DubOun gradient that melts into the
+/// canvas, carrying the DUBOUN wordmark (Sora 800, letterspaced like the
 /// deck-card watermark) and a one-line tagline. Purely presentational.
 class AuthHero extends StatelessWidget {
-  const AuthHero({super.key, this.wordmark = "MOTODUB", this.tagline});
+  const AuthHero({super.key, this.wordmark = "DUBOUN", this.tagline});
 
   final String wordmark;
 
@@ -51,8 +51,8 @@ class AuthHero extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFFEF3C7), // warn-bg warm top
-            AppColors.amber.withValues(alpha: .16),
+            const Color(0xFFE0F2FE), // dubounBg light top
+            AppColors.duboun.withValues(alpha: .16),
             tokens.canvas,
           ],
           stops: const [0.0, 0.55, 1.0],

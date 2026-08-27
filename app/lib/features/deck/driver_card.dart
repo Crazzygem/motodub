@@ -269,7 +269,7 @@ class _DriverCardState extends State<DriverCard> {
 
   Widget _watermark() {
     return Text(
-      "MOTODUB",
+      "DUBOUN",
       style: GoogleFonts.sora(
         fontSize: 13,
         fontWeight: FontWeight.w800,

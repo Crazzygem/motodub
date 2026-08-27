@@ -2,14 +2,14 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/error_messages.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/theme/app_theme.dart";
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/error_messages.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/theme/app_theme.dart";
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/rides/history_screen.dart";
+import "package:duboun/features/rides/history_screen.dart";
 
 // Task 5.2 — history screen: status-colored badges, pull-to-refresh,
 // empty state, error + retry. Repos subclass the real one over a dead

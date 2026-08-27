@@ -2,13 +2,13 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/driver_repo.dart";
-import "package:motodub/core/api/error_messages.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/features/deck/deck_provider.dart";
-import "package:motodub/features/deck/mock_drivers.dart" show useMockDrivers;
-import "package:motodub/features/deck/swipe_deck.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/driver_repo.dart";
+import "package:duboun/core/api/error_messages.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/features/deck/deck_provider.dart";
+import "package:duboun/features/deck/mock_drivers.dart" show useMockDrivers;
+import "package:duboun/features/deck/swipe_deck.dart";
 
 Driver _driver(int id, String name) => Driver(
       id: id,

@@ -277,7 +277,7 @@ class AppLocalizationsKm extends AppLocalizations {
   String get couldntLoadRide => 'មិនអាចផ្ទុកដំណើរនេះបានទេ';
 
   @override
-  String get motoDubDriverTitle => 'MotoDub អ្នកបើកបរ';
+  String get motoDubDriverTitle => 'DubOun អ្នកបើកបរ';
 
   @override
   String get youAreOnline => 'អ្នកលើប្រព័ន្ធហើយ';

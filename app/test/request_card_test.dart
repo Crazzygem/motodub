@@ -1,8 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/features/driver/request_card.dart";
-import "package:motodub/features/driver/ride_controls.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/features/driver/request_card.dart";
+import "package:duboun/features/driver/ride_controls.dart";
 
 const _request = Ride(
   id: 100,

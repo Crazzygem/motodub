@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = motodub
+PRODUCT_NAME = duboun
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.pu.motodub
+PRODUCT_BUNDLE_IDENTIFIER = com.pu.duboun
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.pu. All rights reserved.

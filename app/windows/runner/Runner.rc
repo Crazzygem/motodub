@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.pu" "\0"
-            VALUE "FileDescription", "motodub" "\0"
+            VALUE "FileDescription", "DubOun" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "motodub" "\0"
+            VALUE "InternalName", "DubOun" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.pu. All rights reserved." "\0"
-            VALUE "OriginalFilename", "motodub.exe" "\0"
-            VALUE "ProductName", "motodub" "\0"
+            VALUE "OriginalFilename", "duboun.exe" "\0"
+            VALUE "ProductName", "DubOun" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -4,18 +4,18 @@ import "package:flutter_map/flutter_map.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/api/socket_client.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/api/socket_client.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/driver/driver_provider.dart"
+import "package:duboun/features/driver/driver_provider.dart"
     show socketClientProvider;
-import "package:motodub/features/driver/request_card.dart"
+import "package:duboun/features/driver/request_card.dart"
     show etaMinutesForKm, haversineKm;
-import "package:motodub/features/tracking/tracking_provider.dart";
-import "package:motodub/features/tracking/tracking_screen.dart";
+import "package:duboun/features/tracking/tracking_provider.dart";
+import "package:duboun/features/tracking/tracking_screen.dart";
 
 // Task 5.1 — customer tracking: REST boot + socket merges (§6), gated
 // cancel, live driver marker, stepper rendering, completed → rating stub.

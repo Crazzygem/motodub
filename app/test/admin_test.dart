@@ -4,19 +4,19 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/admin_repo.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/error_messages.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/api/socket_client.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/features/admin/admin_screen.dart";
-import "package:motodub/features/admin/dashboard_tab.dart";
-import "package:motodub/features/admin/drivers_tab.dart";
-import "package:motodub/features/admin/rides_tab.dart";
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/admin_repo.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/error_messages.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/api/socket_client.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/features/admin/admin_screen.dart";
+import "package:duboun/features/admin/dashboard_tab.dart";
+import "package:duboun/features/admin/drivers_tab.dart";
+import "package:duboun/features/admin/rides_tab.dart";
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/driver/driver_provider.dart"
+import "package:duboun/features/driver/driver_provider.dart"
     show socketClientProvider;
 
 // Task 6.2 — admin dashboard: KPI cards off GET /api/admin/stats, the

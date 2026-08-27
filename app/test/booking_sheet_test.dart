@@ -4,12 +4,12 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/features/booking/booking_provider.dart";
-import "package:motodub/features/booking/booking_sheet.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/features/booking/booking_provider.dart";
+import "package:duboun/features/booking/booking_sheet.dart";
 
 const _driver = Driver(
   id: 7,

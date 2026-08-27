@@ -6,24 +6,24 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:image_picker/image_picker.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/auth_repo.dart";
-import "package:motodub/core/api/driver_repo.dart";
-import "package:motodub/core/api/error_messages.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/api/user_repo.dart";
-import "package:motodub/core/auth/auth_state.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/models/user.dart";
-import "package:motodub/core/router/app_router.dart";
-import "package:motodub/features/account/account_providers.dart";
-import "package:motodub/features/account/account_screen.dart";
-import "package:motodub/features/auth/login_screen.dart";
-import "package:motodub/features/auth/providers.dart" show userRepoProvider;
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/auth_repo.dart";
+import "package:duboun/core/api/driver_repo.dart";
+import "package:duboun/core/api/error_messages.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/api/user_repo.dart";
+import "package:duboun/core/auth/auth_state.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/models/user.dart";
+import "package:duboun/core/router/app_router.dart";
+import "package:duboun/features/account/account_providers.dart";
+import "package:duboun/features/account/account_screen.dart";
+import "package:duboun/features/auth/login_screen.dart";
+import "package:duboun/features/auth/providers.dart" show userRepoProvider;
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/deck/deck_provider.dart";
+import "package:duboun/features/deck/deck_provider.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 // --- fixtures -----------------------------------------------------------------

@@ -343,7 +343,7 @@ class _MapPanel extends ConsumerWidget {
           tileLayer ??
               TileLayer(
                 urlTemplate: kOsmTileUrl,
-                userAgentPackageName: "kh.motodub.app",
+                userAgentPackageName: "kh.duboun.app",
               ),
           PolylineLayer(
             polylines: [

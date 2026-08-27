@@ -599,7 +599,7 @@ abstract class AppLocalizations {
   /// No description provided for @motoDubDriverTitle.
   ///
   /// In en, this message translates to:
-  /// **'MotoDub Driver'**
+  /// **'DubOun Driver'**
   String get motoDubDriverTitle;
 
   /// No description provided for @youAreOnline.

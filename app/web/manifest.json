@@ -1,10 +1,9 @@
 {
-    "name": "motodub",
-    "short_name": "motodub",
-    "start_url": ".",
+    "name": "DubOun",
+    "short_name": "DubOun",
     "display": "standalone",
     "background_color": "#0175C2",
-    "theme_color": "#0175C2",
+    "theme_color": "#0EA5E9",
     "description": "A new Flutter project.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,

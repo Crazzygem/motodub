@@ -2,17 +2,17 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/auth/auth_state.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/router/app_router.dart";
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/auth/auth_state.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/router/app_router.dart";
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/customer/customer_home_screen.dart";
-import "package:motodub/features/deck/deck_provider.dart";
-import "package:motodub/features/deck/swipe_deck.dart";
+import "package:duboun/features/customer/customer_home_screen.dart";
+import "package:duboun/features/deck/deck_provider.dart";
+import "package:duboun/features/deck/swipe_deck.dart";
 
 const _dara = Driver(
   id: 1,

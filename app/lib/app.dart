@@ -6,8 +6,8 @@ import "core/preferences/preferences_provider.dart";
 import "core/router/app_router.dart";
 import "core/theme/app_theme.dart";
 
-class MotoDubApp extends ConsumerWidget {
-  const MotoDubApp({super.key});
+class DubOunApp extends ConsumerWidget {
+  const DubOunApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,7 +15,7 @@ class MotoDubApp extends ConsumerWidget {
     final prefs = ref.watch(preferencesProvider).valueOrNull;
 
     return MaterialApp.router(
-      title: "MotoDub",
+      title: "DubOun",
       theme: buildAppTheme(brightness: Brightness.light),
       darkTheme: buildAppTheme(brightness: Brightness.dark),
       themeMode: prefs?.themeMode ?? ThemeMode.system,
@@ -27,3 +27,6 @@ class MotoDubApp extends ConsumerWidget {
     );
   }
 }
+
+@Deprecated('Use DubOunApp')
+typedef MotoDubApp = DubOunApp;

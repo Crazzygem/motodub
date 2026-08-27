@@ -1,20 +1,30 @@
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
-/// Design tokens from DESIGN.md §2 (palette) — locked 2026-08-21, Amber direction.
+/// Design tokens — DubOun palette (rebranded from MotoDub Amber 2026-08-27).
+/// Neutrals (bg/surface/ink/muted/faint/line) unchanged; brand family now sky.
 abstract final class AppColors {
   static const bg = Color(0xFFFAFAF9); // app canvas
   static const surface = Color(0xFFFFFFFF); // cards, sheets, nav
   static const ink = Color(0xFF111827); // primary text, dark elements
-  static const amber = Color(0xFFF59E0B); // primary brand
-  static const amberHover = Color(0xFFFBBF24);
-  static const amberDeep = Color(0xFFB45309); // text-on-amber-pill, active nav
+  // DubOun brand — sky
+  static const duboun = Color(0xFF0EA5E9); // primary brand
+  static const dubounHover = Color(0xFF38BDF8);
+  static const dubounDeep = Color(0xFF0369A1); // text-on-duboun, active nav
+  // Deprecated aliases — keep MotoDub code compiling, all point to DubOun.
+  @Deprecated('Use duboun') static const amber = duboun;
+  @Deprecated('Use dubounHover') static const amberHover = dubounHover;
+  @Deprecated('Use dubounDeep') static const amberDeep = dubounDeep;
   static const bookGreen = Color(0xFF10B981); // BOOK action, success
   static const passRed = Color(0xFFEF4444); // PASS action, destructive
   static const muted = Color(0xFF6B7280); // secondary text
   static const faint = Color(0xFF9CA3AF); // tertiary text, placeholders
   static const line = Color(0xFFE5E7EB); // borders, dividers
   static const surface2 = Color(0xFFF9FAFB); // inset fields, trip boxes
+  // Chip tints — warn now sky-tinted to match DubOun
+  static const warnBg = Color(0xFFE0F2FE); // was #FEF3C7 amber tint
+  static const okBg = Color(0xFFD1FAE5);
+  static const badBg = Color(0xFFFEE2E2);
 }
 
 /// Brightness-sensitive neutral tokens (Task C dark theme): everything the
@@ -43,8 +53,8 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
   final Color textSecondary;
   final Color textTertiary;
 
-  /// Amber-family text/icon accent that must stay legible on [card]
-  /// (amberDeep in light, amberHover in dark).
+  /// DubOun-family text/icon accent that must stay legible on [card]
+  /// (dubounDeep in light, dubounHover in dark).
   final Color accentStrong;
 
   static const light = MotoTokens(
@@ -55,7 +65,7 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
     textPrimary: AppColors.ink,
     textSecondary: AppColors.muted,
     textTertiary: AppColors.faint,
-    accentStrong: AppColors.amberDeep,
+    accentStrong: AppColors.dubounDeep,
   );
 
   static const dark = MotoTokens(
@@ -66,7 +76,7 @@ class MotoTokens extends ThemeExtension<MotoTokens> {
     textPrimary: Color(0xFFF3F4F6),
     textSecondary: Color(0xFF9CA3AF),
     textTertiary: Color(0xFF6B7280),
-    accentStrong: AppColors.amberHover,
+    accentStrong: AppColors.dubounHover,
   );
 
   @override
@@ -127,12 +137,12 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.amber,
+      seedColor: AppColors.duboun,
       brightness: brightness,
     ).copyWith(
-      primary: AppColors.amber,
-      onPrimary: AppColors.ink, // contrast rule: amber always carries ink text
-      secondary: AppColors.amberDeep,
+      primary: AppColors.duboun,
+      onPrimary: AppColors.ink, // DubOun sky also carries ink text (light brand)
+      secondary: AppColors.dubounDeep,
       onSecondary: Colors.white,
       error: AppColors.passRed,
       surface: tokens.card,
@@ -141,12 +151,12 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
     ),
     scaffoldBackgroundColor: tokens.canvas,
     extensions: [tokens],
-    // Shared M3 bottom-nav chrome for every role shell: amber selection
+    // Shared M3 bottom-nav chrome for every role shell: DubOun selection
     // (indicator wash + active token icon/label, §2 "active nav" token).
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: tokens.card,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: AppColors.amber.withValues(alpha: .16),
+      indicatorColor: AppColors.duboun.withValues(alpha: .16),
       elevation: 0,
       height: 68,
       iconTheme: WidgetStateProperty.resolveWith(

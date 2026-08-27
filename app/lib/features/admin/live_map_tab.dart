@@ -102,7 +102,7 @@ class _LiveMapTabState extends ConsumerState<LiveMapTab> {
             widget.tileLayer ??
                 TileLayer(
                   urlTemplate: kOsmTileUrl,
-                  userAgentPackageName: "kh.motodub.app",
+                  userAgentPackageName: "kh.duboun.app",
                 ),
             MarkerLayer(
               markers: [

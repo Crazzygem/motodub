@@ -276,7 +276,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldntLoadRide => 'Couldn\'t load this ride';
 
   @override
-  String get motoDubDriverTitle => 'MotoDub Driver';
+  String get motoDubDriverTitle => 'DubOun Driver';
 
   @override
   String get youAreOnline => 'You\'re online';

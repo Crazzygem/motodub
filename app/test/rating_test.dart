@@ -3,19 +3,19 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/driver_repo.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/api/socket_client.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/theme/app_theme.dart";
-import "package:motodub/features/booking/booking_provider.dart"
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/driver_repo.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/api/socket_client.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/theme/app_theme.dart";
+import "package:duboun/features/booking/booking_provider.dart"
     show rideRepoProvider;
-import "package:motodub/features/deck/deck_provider.dart" show driverRepoProvider;
-import "package:motodub/features/driver/driver_home_screen.dart";
-import "package:motodub/features/driver/driver_provider.dart";
-import "package:motodub/features/rides/rating_screen.dart";
-import "package:motodub/features/tracking/tracking_screen.dart";
+import "package:duboun/features/deck/deck_provider.dart" show driverRepoProvider;
+import "package:duboun/features/driver/driver_home_screen.dart";
+import "package:duboun/features/driver/driver_provider.dart";
+import "package:duboun/features/rides/rating_screen.dart";
+import "package:duboun/features/tracking/tracking_screen.dart";
 
 // Task 7.1 — rating screens: party header, tap-to-select stars, POST
 // /api/rides/{id}/rate {stars}, thanks state, already-rated → thanks without

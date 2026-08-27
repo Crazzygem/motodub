@@ -4,7 +4,7 @@
          call fails with SocketException on installed release APKs. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="motodub"
+        android:label="DubOun"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

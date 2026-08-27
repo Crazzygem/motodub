@@ -1,9 +1,9 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/l10n/l10n.dart";
-import "package:motodub/core/preferences/preferences_provider.dart";
-import "package:motodub/core/theme/app_theme.dart" show buildAppTheme;
+import "package:duboun/core/l10n/l10n.dart";
+import "package:duboun/core/preferences/preferences_provider.dart";
+import "package:duboun/core/theme/app_theme.dart" show buildAppTheme;
 import "package:shared_preferences/shared_preferences.dart";
 
 void main() {

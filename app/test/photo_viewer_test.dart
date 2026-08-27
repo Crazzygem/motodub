@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/features/shared/photo_viewer.dart";
+import "package:duboun/features/shared/photo_viewer.dart";
 
 /// Pumps a one-button home that opens the viewer through the same public
 /// entry point production uses (showModalBottomSheet wrapper).

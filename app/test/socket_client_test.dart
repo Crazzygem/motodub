@@ -1,7 +1,7 @@
 import "dart:async";
 
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/socket_client.dart";
+import "package:duboun/core/api/socket_client.dart";
 
 // Task 4.5 — SocketClient smoke tests. No live server: the socket wiring is
 // glue around socket_io_client; what is actually unit-testable is the raw

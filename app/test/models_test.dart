@@ -4,12 +4,12 @@ import "dart:typed_data";
 import "package:dio/dio.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:image_picker/image_picker.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/driver_repo.dart";
-import "package:motodub/core/api/ride_repo.dart";
-import "package:motodub/core/models/driver.dart";
-import "package:motodub/core/models/ride.dart";
-import "package:motodub/core/models/user.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/driver_repo.dart";
+import "package:duboun/core/api/ride_repo.dart";
+import "package:duboun/core/models/driver.dart";
+import "package:duboun/core/models/ride.dart";
+import "package:duboun/core/models/user.dart";
 
 /// Routes every request to [handler] and records it — no network, no new deps.
 class _FakeAdapter implements HttpClientAdapter {

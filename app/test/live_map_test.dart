@@ -2,12 +2,12 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:motodub/core/api/admin_repo.dart";
-import "package:motodub/core/api/api_client.dart";
-import "package:motodub/core/api/error_messages.dart";
-import "package:motodub/features/admin/admin_screen.dart"
+import "package:duboun/core/api/admin_repo.dart";
+import "package:duboun/core/api/api_client.dart";
+import "package:duboun/core/api/error_messages.dart";
+import "package:duboun/features/admin/admin_screen.dart"
     show adminRepoProvider;
-import "package:motodub/features/admin/live_map_tab.dart";
+import "package:duboun/features/admin/live_map_tab.dart";
 
 // Task 6.3 — admin live map: flutter_map of Phnom Penh fed by a ~10s poll of
 // GET /api/admin/drivers; pins only for verified+online drivers that carry a
